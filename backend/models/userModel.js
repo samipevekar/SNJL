@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import validator from "validator";
 import bcrypt from "bcryptjs";
 
-const WorkerUserSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, "Please provide your name"],
@@ -35,6 +35,10 @@ const WorkerUserSchema = new mongoose.Schema({
     type: String,
     default: "default.jpg",
   },
+  role:{
+    type:String,
+    default:"User"
+  },
   isPhoneVerified: {
     type: Boolean,
     default: false,
@@ -48,16 +52,16 @@ const WorkerUserSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-WorkerUserSchema.pre("save", async function (next) {
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 // Compare passwords
-WorkerUserSchema.methods.comparePassword = async function (candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-const WorkerUser = mongoose.model("WorkerUser", WorkerUserSchema);
-export default WorkerUser;
+const User = mongoose.model("User", userSchema);
+export default User;

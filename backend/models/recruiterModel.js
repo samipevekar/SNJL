@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import validator from 'validator'
 import bcrypt from 'bcryptjs'
 
-const EmployerUserSchema = new mongoose.Schema({
+const recruiterSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, "Please provide your name"],
@@ -36,6 +36,16 @@ const EmployerUserSchema = new mongoose.Schema({
     type: String,
     default: "default.jpg", // Default profile image
   },
+  invites: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User" 
+    }
+  ],
+  role:{
+    type:String,
+    default:"Recruiter"
+  },
   isPhoneVerified: {
     type: Boolean,
     default: false,
@@ -49,17 +59,17 @@ const EmployerUserSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-EmployerUserSchema.pre("save", async function (next) {
+recruiterSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 // Compare passwords
-EmployerUserSchema.methods.comparePassword = async function (candidatePassword) {
+recruiterSchema.methods.comparePassword = async function (candidatePassword) {
   console.log("candidatePassword",candidatePassword)
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-const EmployerUser = mongoose.model("EmployerUser", EmployerUserSchema);
-export default EmployerUser
+const Recruiter = mongoose.model("Recruiter", recruiterSchema);
+export default Recruiter

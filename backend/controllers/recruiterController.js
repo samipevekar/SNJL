@@ -1,4 +1,4 @@
-import EmployerUser from "../models/hiringUser.js";
+import Recruiter from "../models/recruiterModel.js";
 import dotenv from "dotenv";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import validator from "validator";
@@ -15,7 +15,7 @@ const generateVerificationCode = () => {
 const unverifiedUsers = new Map();
 
 // Register a new hiring user (without saving to the database)
-export const registerUser = async (req, res, next) => {
+export const registerRecruiter = async (req, res, next) => {
   const { name, email, phone, password } = req.body;
 
   try {
@@ -39,7 +39,7 @@ export const registerUser = async (req, res, next) => {
     }
 
     // Check if user already exists
-    const existingUser = await EmployerUser.findOne({
+    const existingUser = await Recruiter.findOne({
       $or: [{ email }, { phone }],
     });
     if (existingUser) {
@@ -128,7 +128,7 @@ export const verifyEmail = async (req, res, next) => {
     }
 
     // Create the user in the database
-    const newUser = new EmployerUser({
+    const newUser = new Recruiter({
       name: userData.name,
       email: userData.email,
       phone: userData.phone,
@@ -164,7 +164,7 @@ export const verifyEmail = async (req, res, next) => {
 };
 
 // Login user
-export const loginUser = async (req, res) => {
+export const loginRecruiter = async (req, res) => {
   const { email, password } = req.body;
   console.log(email, password);
   try {
@@ -176,7 +176,7 @@ export const loginUser = async (req, res) => {
     }
 
     // Find user by email
-    const user = await EmployerUser.findOne({ email }).select("+password");
+    const user = await Recruiter.findOne({ email }).select("+password");
     console.log("user", user);
     if (!user) {
       return res
@@ -211,7 +211,7 @@ export const loginUser = async (req, res) => {
 };
 
 // Logout user
-export const logoutUser = (req, res) => {
+export const logoutRecruiter = (req, res) => {
   res.cookie("token", "", {
     secure: true,
     maxAge: 0,

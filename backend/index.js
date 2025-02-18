@@ -6,12 +6,14 @@ import morgan from 'morgan';
 import connectMongo from './db/db.js';
 import errorMiddleware from './middlewares/errorMiddleware.js';
 import jobRoutes from './routes/jobRoutes.js';
-import employerRoutes from './routes/hiringRoute.js';
-import userRoutes from './routes/workerRoute.js'
+import employerRoutes from './routes/recruiterRoutes.js';
+import userRoutes from './routes/userRoutes.js'
+import chatRoutes from './routes/chatRoutes.js'
+import {app, server } from './socket/socket.js';
 
 config();
 
-const app = express();
+// const app = express();
 const PORT = process.env.PORT || 5000;
 
 // MongoDB connection
@@ -36,7 +38,8 @@ app.get('/', (req, res) => {
 
 // All api routes
 app.use('/api/jobs', jobRoutes);
-app.use('/api/v1/employer', employerRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/v1/recruiter', employerRoutes);
 app.use('/api/v1/user',userRoutes)
 
 // Handle 404 routes
@@ -48,4 +51,4 @@ app.all('*', (req, res) => {
 app.use(errorMiddleware);
 
 // Start server
-app.listen(PORT, () => console.log(`Server is listening on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Server is listening on http://localhost:${PORT}`));
