@@ -1,8 +1,8 @@
 // utils/socket.js
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import WorkerUser from '../models/workerUser.js';
-import HiringUser from '../models/hiringUser.js';
+import User from '../models/userModel.js';
+import Recruiter from '../models/recruiterModel.js';
 
 let io = null;
 const activeSockets = new Map(); // Stores active connections: key = "model_id"
@@ -48,8 +48,8 @@ export const initializeSocket = (server) => {
 
       // Check user existence
       const user = modelType === 'User' 
-        ? await WorkerUser.findById(id)
-        : await HiringUser.findById(id);
+        ? await User.findById(id)
+        : await Recruiter.findById(id);
 
       if (!user) {
         socket.disconnect(true);

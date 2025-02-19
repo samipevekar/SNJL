@@ -9,7 +9,7 @@ const friendRequestSchema = new mongoose.Schema({
   senderModel: {
     type: String,
     required: true,
-    enum: ["User", "HiringUser"]
+    enum: ["User", "Recruiter"]
   },
   receiver: {
     type: mongoose.Schema.Types.ObjectId,
@@ -19,7 +19,7 @@ const friendRequestSchema = new mongoose.Schema({
   receiverModel: {
     type: String,
     required: true,
-    enum: ["User", "HiringUser"]
+    enum: ["User", "Recruiter"]
   },
   status: {
     type: String,

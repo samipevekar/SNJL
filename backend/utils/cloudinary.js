@@ -13,7 +13,7 @@ api_secret:process.env.CLOUDINARY_API_SECRET
 })
 
 const uploadOnCloudinary = async (localFilePath,fileType) =>{
-console.log("local",localFilePath)
+// console.log("local",localFilePath)
 try{
 if(!localFilePath){
     return null

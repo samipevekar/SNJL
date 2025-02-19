@@ -1,26 +1,27 @@
-import mongoose from "mongoose";
-import validator from "validator";
-import bcrypt from "bcryptjs";
 
-const WorkerUserSchema = new mongoose.Schema({
+import mongoose from "mongoose";
+import validator from 'validator'
+import bcrypt from 'bcryptjs'
+
+const recruiterSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, "Please provide your name"],
   },
   email: {
     type: String,
+    required: [true, "Please provide your email"],
     unique: true,
     lowercase: true,
-    sparse: true, // Allows either email or phone to be missing
     validate: [validator.isEmail, "Please provide a valid email"],
   },
   phone: {
     type: String,
+    required: [true, "Please provide your phone number"],
     unique: true,
-    sparse: true,
     validate: {
       validator: function (value) {
-        return !value || validator.isMobilePhone(value, "any", { strictMode: false }); 
+        return validator.isMobilePhone(value, "any", { strictMode: false });
       },
       message: "Please provide a valid phone number",
     },
@@ -33,16 +34,28 @@ const WorkerUserSchema = new mongoose.Schema({
   },
   profileImage: {
     type: String,
-    default: "default.jpg",
+    default: "default.jpg", // Default profile image
+  },
+  invites: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User" 
+    }
+  ],
+  role:{
+    type:String,
+    default:"Recruiter"
   },
   isPhoneVerified: {
     type: Boolean,
     default: false,
   },
-  role:{
-    type:String,
-    default:"User"
-  },
+  friends: [
+    {
+      friendId: { type: mongoose.Schema.Types.ObjectId, required: true },
+      friendModel: { type: String, enum: ["User", "Recruiter"], required: true }
+    }
+  ],
   verificationCode: {
     type: String,
   },
@@ -52,16 +65,17 @@ const WorkerUserSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-WorkerUserSchema.pre("save", async function (next) {
+recruiterSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 // Compare passwords
-WorkerUserSchema.methods.comparePassword = async function (candidatePassword) {
+recruiterSchema.methods.comparePassword = async function (candidatePassword) {
+  console.log("candidatePassword",candidatePassword)
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-const WorkerUser = mongoose.model("WorkerUser", WorkerUserSchema);
-export default WorkerUser;
+const Recruiter = mongoose.model("Recruiter", recruiterSchema);
+export default Recruiter

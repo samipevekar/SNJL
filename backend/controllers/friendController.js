@@ -1,8 +1,9 @@
 import FriendRequest from "../models/friendRequest.js";
 import Notification from "../models/notificationModel.js";
 import { getIO } from "../utils/socket.js";
-import WorkerUser from "../models/workerUser.js"; // Import User model
-import HiringUser from "../models/hiringUser.js"; // Import HiringUser model
+import User from "../models/userModel.js"; // Import User model
+import Recruiter from "../models/recruiterModel.js"; // Import HiringUser model
+import mongoose from "mongoose";
 
 export const sendFriendRequest = async (req, res) => {
   try {
@@ -13,7 +14,7 @@ export const sendFriendRequest = async (req, res) => {
 
     // Prevent self-request
     if (senderId.toString() === receiverId.toString() && senderModel === receiverModel) {
-      return res.status(400).json({ success: false, error: "Cannot send request to yourself" });
+      return res.status(400).json({ success: false, message: "Cannot send request to yourself" });
     }
 
     // Check existing request
@@ -25,7 +26,7 @@ export const sendFriendRequest = async (req, res) => {
     });
 
     if (existingRequest) {
-      return res.status(400).json({ error: "Request already exists" });
+      return res.status(400).json({ success: false, message: "Request already exists" });
     }
 
     // Create request
@@ -52,70 +53,93 @@ console.log("notification",notification)
     const io = getIO();
     io.to(receiverId.toString()).emit("new_notification", notification);
 
-    res.status(201).json(newRequest);
+    res.status(201).json({ success: true,message:"Request sent successfully", data: newRequest });
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 
 export const respondToRequest = async (req, res) => {
   try {
     const { requestId } = req.params;
     const { status } = req.body;
-    const userId = req.user.id; // Current user's ID
+    const userId = req.user.id; // Authenticated user ID
     const userModelType = req.user.role; // From authentication middleware
 
-    // Find the request with proper authorization
+    // ✅ Validate requestId format
+    if (!mongoose.Types.ObjectId.isValid(requestId)) {
+      return res.status(400).json({ success: false, message: "Invalid request ID" });
+    }
+
+    // ✅ Find the friend request with proper authorization
     const request = await FriendRequest.findOne({
       _id: requestId,
       $or: [
-        { 
-          receiver: userId,
-          receiverModel: userModelType // Ensure model type matches
-        },
-        { 
-          sender: userId,
-          senderModel: userModelType // Allow users to cancel their own requests
-        }
+        { receiver: userId, receiverModel: userModelType },
+        { sender: userId, senderModel: userModelType } // Allows users to cancel their own requests
       ]
     });
 
     if (!request) {
-      return res.status(404).json({ error: "Request not found or unauthorized" });
+      return res.status(404).json({ success: false, message: "Request not found or unauthorized" });
     }
 
-    // Authorization check - only receiver can accept/reject
-    if (status !== "pending" && 
-        !(request.receiver.equals(userId) && request.receiverModel === userModelType)) {
-      return res.status(403).json({success: false, error: "Unauthorized to modify this request" });
+    // ✅ Only the receiver can accept/reject (sender can only cancel)
+    if (status !== "pending" && !(request.receiver.equals(userId) && request.receiverModel === userModelType)) {
+      return res.status(403).json({ success: false, message: "Unauthorized to modify this request" });
     }
 
-    // Update request status
-    request.status = status;
-    await request.save();
+    // ✅ If the request is rejected or canceled, delete it
+    if (status === "rejected" || status === "canceled") {
+      await FriendRequest.findByIdAndDelete(requestId);
+      return res.status(200).json({ success: true, message: `Request ${status} successfully` });
+    }
 
-    // If accepted, update both users' friend lists
+    // ✅ If the request is accepted, update both users' friends list
     if (status === "accepted") {
-      const senderModel = request.senderModel === "User" ? WorkerUser : HiringUser;
-      const receiverModel = request.receiverModel === "User" ? WorkerUser : HiringUser;
+      const senderModel = request.senderModel === "User" ? User : Recruiter;
+const receiverModel = request.receiverModel === "User" ? User : Recruiter;
 
-      await Promise.all([
-        senderModel.findByIdAndUpdate(request.sender, {
-          $addToSet: { friends: request.receiver }
-        }),
-        receiverModel.findByIdAndUpdate(request.receiver, {
-          $addToSet: { friends: request.sender }
-        })
-      ]);
+await Promise.all([
+  senderModel.findByIdAndUpdate(request.sender, {
+    $addToSet: { friends: { friendId: request.receiver, friendModel: request.receiverModel } }
+  }),
+  receiverModel.findByIdAndUpdate(request.receiver, {
+    $addToSet: { friends: { friendId: request.sender, friendModel: request.senderModel } }
+  })
+]);
+
+      // ✅ Remove the friend request after acceptance
+      await FriendRequest.findByIdAndDelete(requestId);
+
+      // ✅ Send notification to sender about acceptance
+      const notification = await Notification.create({
+        recipient: request.sender,
+        recipientModel: request.senderModel,
+        sender: userId,
+        senderModel: userModelType,
+        type: "friend_request_accepted",
+        message: "Your friend request has been accepted!"
+      });
+
+      // ✅ Emit real-time notification
+      const io = getIO();
+      io.to(request.sender.toString()).emit("new_notification", notification);
+
+      return res.status(200).json({ success: true, message: "Friend request accepted", data: request });
     }
 
-    res.json(request);
+    res.status(400).json({ success: false, message: "Invalid status update" });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error in respondToRequest:", error.message);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
 
 // Add this new controller to get filtered requests
 export const getFriendRequests = async (req, res) => {
@@ -132,12 +156,12 @@ export const getFriendRequests = async (req, res) => {
     .populate({
       path: 'sender',
       select: 'name profileImage',
-      model: userModelType === 'User' ? WorkerUser : HiringUser // ✅ Fix model selection
+      model: userModelType === 'User' ? User : Recruiter // ✅ Fix model selection
     })
     .populate({
       path: 'receiver',
       select: 'name profileImage',
-      model: userModelType === 'User' ? WorkerUser : HiringUser // ✅ Fix model selection
+      model: userModelType === 'User' ? User : Recruiter // ✅ Fix model selection
     })
     .sort({ createdAt: -1 })
     .lean();
@@ -159,34 +183,63 @@ export const getFriendRequests = async (req, res) => {
       outgoing
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
 
 
 export const getRecommendations = async (req, res) => {
   try {
     const { userId, modelType } = req.params;
-    const userModel = modelType === "User" ? WorkerUser : HiringUser;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
 
-    // Get user's friends
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: "Invalid user ID" });
+    }
+
+    // Get user model
+    const userModel = modelType === "User" ? User : Recruiter;
+
+    // Get user's friends list
     const user = await userModel.findById(userId).select("friends");
-    
-    // Get friends of friends
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const friendsList = user.friends || [];
+
+    // Aggregate recommendations
     const recommendations = await userModel.aggregate([
-      { $match: { 
-        _id: { $nin: [userId, ...user.friends] }, // Exclude self and existing friends
-        friends: { $in: user.friends } // Mutual friends
-      }},
-      { $sample: { size: 10 } }, // Random 10 recommendations
-      { $project: { name: 1, profileImage: 1 } }
+      {
+        $match: {
+          _id: { $nin: [userId, ...friendsList] }, // Exclude self & existing friends
+          friends: { $in: friendsList } // Mutual friends
+        }
+      },
+      { $project: { name: 1, profileImage: 1 } }, // Select relevant fields
+      { $skip: skip },
+      { $limit: limit }
     ]);
 
-    res.json(recommendations);
+    res.status(200).json({
+      success: true,
+      data: recommendations,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(recommendations.length / limit),
+      },
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error fetching recommendations:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 
 
@@ -205,7 +258,7 @@ export const getFriendList = async (req, res) => {
     }
 
     // Get user model
-    const userModel = modelType === 'User' ? User : HiringUser;
+    const userModel = modelType === 'User' ? User : Recruiter;
     
     // Single aggregation query for data + count
     const result = await userModel.aggregate([
@@ -290,7 +343,7 @@ export const getFriendList = async (req, res) => {
   } catch (error) {
     console.error('Error fetching friend list:', error);
     res.status(500).json({ 
-      error: 'Failed to fetch friend list',
+      message: 'Failed to fetch friend list',
       details: error.message
     });
   }

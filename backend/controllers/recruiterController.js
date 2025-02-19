@@ -1,4 +1,4 @@
-import EmployerUser from "../models/hiringUser.js";
+import Recruiter from "../models/recruiterModel.js";
 import dotenv from "dotenv";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import validator from "validator";
@@ -15,35 +15,35 @@ const generateVerificationCode = () => {
 const unverifiedUsers = new Map();
 
 // Register a new hiring user (without saving to the database)
-export const registerUser = async (req, res, next) => {
+export const registerRecruiter = async (req, res, next) => {
   const { name, email, phone, password } = req.body;
 
   try {
     // Validate input
     if (!name || !email || !phone || !password) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({ success :false , message: "All fields are required" });
     }
 
     if (!validator.isEmail(email)) {
-      return res.status(400).json({ message: "Invalid email" });
+      return res.status(400).json({ success: false, message: "Invalid email" });
     }
 
     if (!validator.isMobilePhone(phone, "any", { strictMode: false })) {
-      return res.status(400).json({ message: "Invalid phone number" });
+      return res.status(400).json({ success: false, message: "Invalid phone number" });
     }
 
     if (password.length < 8) {
       return res
         .status(400)
-        .json({ message: "Password must be at least 8 characters long" });
+        .json({ success: false, message: "Password must be at least 8 characters long" });
     }
 
     // Check if user already exists
-    const existingUser = await EmployerUser.findOne({
+    const existingUser = await Recruiter.findOne({
       $or: [{ email }, { phone }],
     });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ success: false, message: "User already exists" });
     }
 
     // Generate a verification code
@@ -71,10 +71,10 @@ export const registerUser = async (req, res, next) => {
 
     res
       .status(201)
-      .json({ message: "Verification email sent. Please verify your email." });
+      .json({ success: true, message: "Verification email sent. Please verify your email." });
   } catch (error) {
     console.error("Error during registration:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -85,7 +85,7 @@ export const verifyEmail = async (req, res, next) => {
   try {
     // Validate input
     if (!email || !code) {
-      return res.status(400).json({ message: "email and code are required" });
+      return res.status(400).json({ success :false ,message: "email and code are required" });
     }
 
     // Retrieve the unverified user from temporary storage
@@ -93,12 +93,12 @@ export const verifyEmail = async (req, res, next) => {
     if (!userData) {
       return res
         .status(404)
-        .json({ message: "User not found or verification code expired" });
+        .json({success :false , message: "User not found or verification code expired" });
     }
 
     // Check if the verification code matches
     if (userData.verificationCode !== code) {
-      return res.status(400).json({ message: "Invalid verification code" });
+      return res.status(400).json({ success :false ,message: "Invalid verification code" });
     }
 
     // Check if the verification code has expired
@@ -127,12 +127,12 @@ console.log("profileImageUrl", profileImageUrl)
     }
 
     // Create the user in the database
-    const newUser = new EmployerUser({
+    const newUser = new Recruiter({
       name: userData.name,
       email: userData.email,
       phone: userData.phone,
       password: userData.password,
-      role: "HiringUser",
+      role: "Recruiter",
       profileImage: profileImageUrl,
       isPhoneVerified: true,
     });
@@ -159,12 +159,12 @@ console.log("profileImageUrl", profileImageUrl)
     });
   } catch (error) {
     console.error("Error verifying phone:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ success :false ,message: "Internal server error" });
   }
 };
 
 // Login user
-export const loginUser = async (req, res) => {
+export const loginRecruiter = async (req, res) => {
   const { email, password } = req.body;
   
   try {
@@ -172,12 +172,13 @@ export const loginUser = async (req, res) => {
     if (!email || !password) {
       return res
         .status(400)
-        .json({ message: "Email and password are required" });
+        .json({success :false , message: "Email and password are required" , data : null });
     }
 
     // Find user by email
-    const user = await EmployerUser.findOne({ email }).select("+password");
-    
+//  HEAD:backend/controllers/hiringController.js
+    const user = await Recruiter.findOne({ email }).select("+password");
+    console.log("user", user);
     if (!user) {
       return res
         .status(401)
@@ -206,12 +207,12 @@ export const loginUser = async (req, res) => {
     res.status(200).json({ success: true, message: "Login successful", user });
   } catch (error) {
     console.error("Error logging in:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    res.status(500).json({ success: false, message: "Internal server error"  });
   }
 };
 
 // Logout user
-export const logoutUser = (req, res) => {
+export const logoutRecruiter = (req, res) => {
   res.cookie("token", "", {
     secure: true,
     maxAge: 0,

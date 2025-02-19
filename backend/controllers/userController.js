@@ -1,4 +1,4 @@
-import WorkerUser from "../models/workerUser.js";
+import User from "../models/userModel.js";
 import dotenv from "dotenv";
 import validator from "validator";
 import AppError from '../middlewares/errorMiddleware.js'
@@ -6,7 +6,6 @@ import bcrypt from 'bcryptjs'
 import { generateToken } from "../utils/jwt.js";
 import { sendVerificationEmail } from "../utils/nodemailer.js";
 dotenv.config();
-
 
 // Temporary storage for unverified users
 const unverifiedWorkers = new Map();
@@ -17,33 +16,33 @@ const generateVerificationCode = () => {
 };
 
 // Register a new worker (without saving to the database)
-export const registerWorker = async (req, res, next) => {
-  const { name, password, email, phone } = req.body;
-
+export const registerUser = async (req, res, next) => {
+  const { name, email,phone,password,  } = req.body;
+console.log(req.body)
   try {
     // Validate input
     if (!name || !password) {
-      return res.status(400).json({ message: "Name and password are required" });
+      return res.status(400).json({ success :false , message: "Name and password are required" });
     }
 
     if (!email && !phone) {
-      return res.status(400).json({ message: "Either email or phone number is required" });
+      return res.status(400).json({ success :false , message: "Either email or phone number is required" });
     }
 
     if (email && !validator.isEmail(email)) {
-      return res.status(400).json({ message: "Invalid email" });
+      return res.status(400).json({success: false, message: "Invalid email" });
     }
 
     if (phone && !validator.isMobilePhone(phone, "any", { strictMode: false })) {
-      return res.status(400).json({ message: "Invalid phone number" });
+      return res.status(400).json({success: false, message: "Invalid phone number" });
     }
 
     if (password.length < 8) {
-      return res.status(400).json({ message: "Password must be at least 8 characters long" });
+      return res.status(400).json({ success :false , message: "Password must be at least 8 characters long" });
     }
 
     // Check if worker already exists
-    const existingWorker = await WorkerUser.findOne({ $or: [{ email }, { phone }] });
+    const existingWorker = await User.findOne({ $or: [{ email }, { phone }] });
     if (existingWorker) {
       return res.status(400).json({ message: "Worker already exists" });
     }
@@ -53,7 +52,7 @@ export const registerWorker = async (req, res, next) => {
     const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Store the unverified worker in temporary storage
-    unverifiedWorkers.set( email, {
+    unverifiedWorkers.set(email, {
       name,
       email,
       phone,
@@ -62,17 +61,17 @@ export const registerWorker = async (req, res, next) => {
       verificationCodeExpires,
     });
 
-await sendVerificationEmail(email, verificationCode);
+    await sendVerificationEmail(email, verificationCode);
 
-    res.status(201).json({ message: "Verification email sent. Please verify your email." });
+    res.status(201).json({ success: true, message: "Verification email sent. Please verify your email." });
   } catch (error) {
     console.error("Error during registration:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
 // Verify email/phone and create worker
-export const verifyWorker = async (req, res, next) => {
+export const verifyUser = async (req, res, next) => {
   const { email, code } = req.body; // identifier can be email or phone
 
   try {
@@ -94,7 +93,7 @@ export const verifyWorker = async (req, res, next) => {
 
     // Check if the verification code has expired
     if (workerData.verificationCodeExpires < new Date()) {
-      unverifiedWorkers.delete(phone); // Clean up expired data
+      unverifiedWorkers.delete(email); // Clean up expired data
       return res.status(400).json({ message: "Verification code expired" });
     }
 
@@ -103,12 +102,19 @@ export const verifyWorker = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(workerData.password, salt);
 
     // Create the worker in the database
-    const newWorker = new WorkerUser ({
+    const newWorker = new User({
       name: workerData.name,
       email: workerData.email || null,
       phone: workerData.phone || undefined,
-      role: "WorkerUser",
+
+      role: "User",
       password: hashedPassword,
+
+      password: workerData.password,
+      // profileImage: profileImageUrl,
+      isPhoneVerified: true,
+      verificationCode: null,
+
     });
 
     await newWorker.save();
@@ -137,7 +143,7 @@ export const verifyWorker = async (req, res, next) => {
 };
 
 // Login worker
-export const loginWorker = async (req, res) => {
+export const loginUser = async (req, res) => {
   const { email, phone, password } = req.body;
 
   try {
@@ -147,7 +153,7 @@ export const loginWorker = async (req, res) => {
     }
 
     // Find worker by email or phone
-    const worker = await WorkerUser.findOne({ $or: [{ email }, { phone }] }).select("+password");
+    const worker = await User.findOne({ $or: [{ email }, { phone }] }).select("+password");
 
     if (!worker) {
       return res.status(401).json({ success: false, message: "Invalid email/phone or password" });
@@ -161,9 +167,9 @@ export const loginWorker = async (req, res) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign({ id: worker._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = generateToken(worker._id , worker.role);
 
-    res.cookie("user_token", token, {
+    res.cookie("token", token, {
       secure: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,
@@ -179,8 +185,8 @@ export const loginWorker = async (req, res) => {
 };
 
 // Logout worker
-export const logoutWorker = (req, res) => {
-  res.cookie("token", "", {
+export const logoutUser = (req, res) => {
+  res.cookie("user_token", "", {
     secure: true,
     maxAge: 0,
     httpOnly: true,

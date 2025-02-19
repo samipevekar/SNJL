@@ -6,23 +6,22 @@ import morgan from 'morgan';
 import connectMongo from './db/db.js';
 import errorMiddleware from './middlewares/errorMiddleware.js';
 import jobRoutes from './routes/jobRoutes.js';
-import employerRoutes from './routes/hiringRoute.js';
-import userRoutes from './routes/workerRoute.js'
-import friendrequestroute from './routes/friendRoutes.js';
-import http from 'http';
+import recuiterRoutes from './routes/recruiterRoutes.js';
+import userRoutes from './routes/userRoutes.js'
+import chatRoutes from './routes/chatRoutes.js';
+import friendRoutes from './routes/friendRoutes.js';
 import { initializeSocket } from './utils/socket.js';
-
+import http from 'http';
 config();
 
 const app = express();
-const server = http.createServer(app);
-
 const PORT = process.env.PORT || 5000;
+
 
 
 // MongoDB connection
 connectMongo();
-
+const server = http.createServer(app);
 // Middlewares
 app.use(express.json({limit:"20mb"}));
 app.use(express.urlencoded({ extended: true }));
@@ -42,9 +41,10 @@ app.get('/', (req, res) => {
 
 // All api routes
 app.use('/api/jobs', jobRoutes);
-app.use('/api/v1/employer', employerRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/v1/recruiter', recuiterRoutes);
 app.use('/api/v1/user',userRoutes)
-app.use('/api/v1/friends',friendrequestroute)
+app.use('/api/v1/friends',friendRoutes)
 
 // Handle 404 routes
 app.all('*', (req, res) => {
@@ -55,4 +55,4 @@ app.all('*', (req, res) => {
 app.use(errorMiddleware);
 initializeSocket(server);
 // Start server
-app.listen(PORT, () => console.log(`Server is listening on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Server is listening on http://localhost:${PORT}`));
