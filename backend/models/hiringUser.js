@@ -40,6 +40,10 @@ const EmployerUserSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  role:{
+    type:String,
+    default:"HiringUser"
+  },
   verificationCode: {
     type: String,
   },

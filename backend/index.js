@@ -8,11 +8,17 @@ import errorMiddleware from './middlewares/errorMiddleware.js';
 import jobRoutes from './routes/jobRoutes.js';
 import employerRoutes from './routes/hiringRoute.js';
 import userRoutes from './routes/workerRoute.js'
+import friendrequestroute from './routes/friendRoutes.js';
+import http from 'http';
+import { initializeSocket } from './utils/socket.js';
 
 config();
 
 const app = express();
+const server = http.createServer(app);
+
 const PORT = process.env.PORT || 5000;
+
 
 // MongoDB connection
 connectMongo();
@@ -38,6 +44,7 @@ app.get('/', (req, res) => {
 app.use('/api/jobs', jobRoutes);
 app.use('/api/v1/employer', employerRoutes);
 app.use('/api/v1/user',userRoutes)
+app.use('/api/v1/friends',friendrequestroute)
 
 // Handle 404 routes
 app.all('*', (req, res) => {
@@ -46,6 +53,6 @@ app.all('*', (req, res) => {
 
 // Error handling middleware
 app.use(errorMiddleware);
-
+initializeSocket(server);
 // Start server
 app.listen(PORT, () => console.log(`Server is listening on http://localhost:${PORT}`));

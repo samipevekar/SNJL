@@ -39,6 +39,10 @@ const WorkerUserSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  role:{
+    type:String,
+    default:"User"
+  },
   verificationCode: {
     type: String,
   },

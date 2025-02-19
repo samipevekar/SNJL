@@ -50,7 +50,6 @@ export const registerUser = async (req, res, next) => {
     const verificationCode = generateVerificationCode();
     const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Hash the password
 
     let profileImage =
       req?.file ||
@@ -112,10 +111,10 @@ export const verifyEmail = async (req, res, next) => {
       userData.profileImage ||
       "https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/default.jpg";
     // Upload profile image to Cloudinary if provided
-
+console.log("profileImageUrl", profileImageUrl)
     if (("file", profileImageUrl)) {
       try {
-        const result = await uploadOnCloudinary(profileImageUrl?.path);
+        const result = await uploadOnCloudinary(profileImageUrl?.path ,"auto");
 
         if (result) {
           profileImageUrl = result.secure_url;
@@ -133,6 +132,7 @@ export const verifyEmail = async (req, res, next) => {
       email: userData.email,
       phone: userData.phone,
       password: userData.password,
+      role: "HiringUser",
       profileImage: profileImageUrl,
       isPhoneVerified: true,
     });
@@ -143,7 +143,7 @@ export const verifyEmail = async (req, res, next) => {
     unverifiedUsers.delete(email);
 
     // Generate JWT token
-    const token = generateToken(newUser._id);
+    const token = generateToken(newUser._id , newUser.role);
 
     // Set token in cookie
     res.cookie("token", token, {
@@ -166,7 +166,7 @@ export const verifyEmail = async (req, res, next) => {
 // Login user
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
-  console.log(email, password);
+  
   try {
     // Validate input
     if (!email || !password) {
@@ -177,7 +177,7 @@ export const loginUser = async (req, res) => {
 
     // Find user by email
     const user = await EmployerUser.findOne({ email }).select("+password");
-    console.log("user", user);
+    
     if (!user) {
       return res
         .status(401)
@@ -186,7 +186,7 @@ export const loginUser = async (req, res) => {
 
     // Compare passwords
     const isPasswordValid = await user.comparePassword(password);
-    console.log("isPasswordValid", isPasswordValid);
+    // console.log("isPasswordValid", isPasswordValid);
     if (!isPasswordValid) {
       return res
         .status(401)
@@ -194,7 +194,7 @@ export const loginUser = async (req, res) => {
     }
 
     // Generate JWT token
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.role);
     user.password = undefined;
     // Set token in cookie
     res.cookie("token", token, {

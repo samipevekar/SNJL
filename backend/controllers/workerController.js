@@ -107,6 +107,7 @@ export const verifyWorker = async (req, res, next) => {
       name: workerData.name,
       email: workerData.email || null,
       phone: workerData.phone || undefined,
+      role: "WorkerUser",
       password: hashedPassword,
     });
 
@@ -116,7 +117,7 @@ export const verifyWorker = async (req, res, next) => {
     unverifiedWorkers.delete(email);
 
     // Generate JWT token
-    const token = generateToken(newWorker._id);
+    const token = generateToken(newWorker._id , newWorker.role);
 
     res.cookie("user_token", token, {
       secure: true,
