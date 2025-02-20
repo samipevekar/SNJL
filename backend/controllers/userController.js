@@ -144,40 +144,44 @@ export const verifyUser = async (req, res, next) => {
 
 // Login worker
 export const loginUser = async (req, res) => {
-  const { email, phone, password } = req.body;
-
+  const { email, password } = req.body;
   try {
     // Validate input
-    if ((!email && !phone) || !password) {
-      return res.status(400).json({ message: "Email/phone and password are required" });
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
     }
 
-    // Find worker by email or phone
-    const worker = await User.findOne({ $or: [{ email }, { phone }] }).select("+password");
-
-    if (!worker) {
-      return res.status(401).json({ success: false, message: "Invalid email/phone or password" });
+    // Find user by email
+    const user = await User.findOne({ email }).select("+password");
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid email or password" });
     }
 
     // Compare passwords
-    const isPasswordValid = await bcrypt.compare(password, worker.password);
-
+    const isPasswordValid = await user.comparePassword(password);
+    console.log("isPasswordValid", isPasswordValid);
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, message: "Invalid email/phone or password" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid email or password" });
     }
 
     // Generate JWT token
-    const token = generateToken(worker._id , worker.role);
+    const token = generateToken(user._id , user.role);
 
-    res.cookie("token", token, {
+    user.password = undefined;
+    // Set token in cookie
+    res.cookie("user_token", token, {
       secure: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,
     });
 
-    worker.password = undefined;
-
-    res.status(200).json({ success: true, message: "Login successful", worker });
+    res.status(200).json({ success: true, message: "Login successful", user });
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ success: false, message: "Internal server error" });

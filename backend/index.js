@@ -11,17 +11,18 @@ import userRoutes from './routes/userRoutes.js'
 import chatRoutes from './routes/chatRoutes.js';
 import friendRoutes from './routes/friendRoutes.js';
 import { initializeSocket } from './utils/socket.js';
-import http from 'http';
+import ratingRoutes from './routes/ratingRoute.js'
+import postRoutes from './routes/postRoutes.js'
+import {app, server } from './socket/socket.js';
+
 config();
 
-const app = express();
 const PORT = process.env.PORT || 5000;
 
 
 
 // MongoDB connection
 connectMongo();
-const server = http.createServer(app);
 // Middlewares
 app.use(express.json({limit:"20mb"}));
 app.use(express.urlencoded({ extended: true }));
@@ -40,11 +41,14 @@ app.get('/', (req, res) => {
 });
 
 // All api routes
-app.use('/api/jobs', jobRoutes);
-app.use('/api/chat', chatRoutes);
 app.use('/api/v1/recruiter', recuiterRoutes);
 app.use('/api/v1/user',userRoutes)
-app.use('/api/v1/friends',friendRoutes)
+app.use('/api/jobs', jobRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/friends',friendRoutes)
+app.use('/api/ratings', ratingRoutes);
+app.use('/api/posts', postRoutes);
+
 
 // Handle 404 routes
 app.all('*', (req, res) => {

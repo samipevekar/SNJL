@@ -13,6 +13,16 @@ export const sendMessage = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    // if sender is recruiter then no need to accept the invite
+    if(senderType == "Recruiter"){
+      const recruiter = await Recruiter.findById(senderId);  
+      if (!recruiter) {
+        return res.status(404).json({ error: "Recruiter not found" });
+      }
+      recruiter.invites.push(receiverId)
+      await recruiter.save()
+    }
+
     // If a user is messaging a recruiter, check invite status
     if (senderType === "User" && receiverType === "Recruiter") {
       const recruiter = await Recruiter.findById(receiverId);
@@ -21,6 +31,7 @@ export const sendMessage = async (req, res) => {
         return res.status(404).json({ error: "Recruiter not found" });
       }
 
+      // check if user is added to invites
       const hasInvite = recruiter.invites.includes(senderId);
       const previousMessages = await Chat.findOne({
         sender: senderId,

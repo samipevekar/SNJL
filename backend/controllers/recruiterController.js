@@ -144,7 +144,6 @@ console.log("profileImageUrl", profileImageUrl)
 
     // Generate JWT token
     const token = generateToken(newUser._id , newUser.role);
-
     // Set token in cookie
     res.cookie("token", token, {
       secure: true,
