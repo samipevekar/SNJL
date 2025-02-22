@@ -42,7 +42,7 @@ console.log(req.body)
     }
 
     // Check if worker already exists
-    const existingWorker = await User.findOne({ $or: [{ email }, { phone }] });
+    const existingWorker = await User.findOne({email:email});
     if (existingWorker) {
       return res.status(400).json({ message: "Worker already exists" });
     }
@@ -107,7 +107,6 @@ export const verifyUser = async (req, res, next) => {
       email: workerData.email || null,
       phone: workerData.phone || undefined,
 
-      role: "User",
       password: hashedPassword,
 
       password: workerData.password,
@@ -123,19 +122,9 @@ export const verifyUser = async (req, res, next) => {
     unverifiedWorkers.delete(email);
 
     // Generate JWT token
-    const token = generateToken(newWorker._id , newWorker.role);
+    const token = generateToken(newWorker._id, newWorker.role);
 
-    res.cookie("user_token", token, {
-      secure: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Worker registered successfully",
-      newWorker,
-    });
+    res.status(201).json({ success: true, message: "User registered successfully", token, user: newWorker });
   } catch (error) {
     console.error("Error verifying worker:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -144,44 +133,33 @@ export const verifyUser = async (req, res, next) => {
 
 // Login worker
 export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, phone, password } = req.body;
+
   try {
     // Validate input
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required" });
+    if ((!email && !phone) || !password) {
+      return res.status(400).json({ message: "Email/phone and password are required" });
     }
 
-    // Find user by email
-    const user = await User.findOne({ email }).select("+password");
-    if (!user) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid email or password" });
+    // Find worker by email or phone
+    const worker = await User.findOne({email:email }).select("+password");
+
+    if (!worker) {
+      return res.status(401).json({ success: false, message: "Invalid email/phone or password" });
     }
 
     // Compare passwords
-    const isPasswordValid = await user.comparePassword(password);
-    console.log("isPasswordValid", isPasswordValid);
+    const isPasswordValid = await bcrypt.compare(password, worker.password);
+
     if (!isPasswordValid) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid email or password" });
+      return res.status(401).json({ success: false, message: "Invalid email/phone or password" });
     }
 
     // Generate JWT token
-    const token = generateToken(user._id , user.role);
+ const token = generateToken(worker._id, worker.role);
+     worker.password = undefined;
 
-    user.password = undefined;
-    // Set token in cookie
-    res.cookie("user_token", token, {
-      secure: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-    });
-
-    res.status(200).json({ success: true, message: "Login successful", user });
+    res.status(200).json({ success: true, message: "Login successful", token, worker });
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -189,11 +167,8 @@ export const loginUser = async (req, res) => {
 };
 
 // Logout worker
-export const logoutUser = (req, res) => {
-  res.cookie("user_token", "", {
-    secure: true,
-    maxAge: 0,
-    httpOnly: true,
-  });
+export const logoutUser  = (req, res) => {
+  let user = req.user
+  console.log('user : ',user)
   res.status(200).json({ success: true, message: "Logout successful" });
 };

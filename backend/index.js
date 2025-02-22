@@ -59,4 +59,4 @@ app.all('*', (req, res) => {
 app.use(errorMiddleware);
 initializeSocket(server);
 // Start server
-server.listen(PORT, () => console.log(`Server is listening on http://localhost:${PORT}`));
+server.listen(PORT,"0.0.0.0", () => console.log(`Server is listening on http://localhost:${PORT}`));
