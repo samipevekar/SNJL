@@ -123,19 +123,9 @@ export const verifyUser = async (req, res, next) => {
     unverifiedWorkers.delete(email);
 
     // Generate JWT token
-    const token = generateToken(newWorker._id , newWorker.role);
+    const token = generateToken(newUser._id, newWorker.role);
 
-    res.cookie("user_token", token, {
-      secure: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Worker registered successfully",
-      newWorker,
-    });
+    res.status(201).json({ success: true, message: "User registered successfully", token, user: newWorker });
   } catch (error) {
     console.error("Error verifying worker:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -167,17 +157,10 @@ export const loginUser = async (req, res) => {
     }
 
     // Generate JWT token
-    const token = generateToken(worker._id , worker.role);
+ const token = generateToken(worker._id, worker.role);
+     worker.password = undefined;
 
-    res.cookie("token", token, {
-      secure: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-    });
-
-    worker.password = undefined;
-
-    res.status(200).json({ success: true, message: "Login successful", worker });
+    res.status(200).json({ success: true, message: "Login successful", token, worker });
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -185,11 +168,6 @@ export const loginUser = async (req, res) => {
 };
 
 // Logout worker
-export const logoutUser = (req, res) => {
-  res.cookie("user_token", "", {
-    secure: true,
-    maxAge: 0,
-    httpOnly: true,
-  });
+export const logoutUser  = (req, res) => {
   res.status(200).json({ success: true, message: "Logout successful" });
 };

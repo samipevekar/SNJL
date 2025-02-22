@@ -10,7 +10,7 @@ const recruiterRouter = Router()
 recruiterRouter.post('/register' , upload.single('profileImage'), registerRecruiter)
 recruiterRouter.post('/verify' ,verifyEmail)
 recruiterRouter.post('/login' ,loginRecruiter)
-recruiterRouter.post('/logout' ,isLoggedIn,logoutRecruiter)
+recruiterRouter.post('/logout' ,logoutRecruiter)
 
 
 export default recruiterRouter

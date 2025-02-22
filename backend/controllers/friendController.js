@@ -221,7 +221,7 @@ export const getRecommendations = async (req, res) => {
           friends: { $in: friendsList } // Mutual friends
         }
       },
-      { $project: { name: 1, profileImage: 1 } }, // Select relevant fields
+      { $project: { name: 1, profileImage: 1,role:1 } }, // Select relevant fields
       { $skip: skip },
       { $limit: limit }
     ]);

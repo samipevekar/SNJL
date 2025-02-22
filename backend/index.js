@@ -10,8 +10,10 @@ import recuiterRoutes from './routes/recruiterRoutes.js';
 import userRoutes from './routes/userRoutes.js'
 import chatRoutes from './routes/chatRoutes.js';
 import friendRoutes from './routes/friendRoutes.js';
+import postRoutes from './routes/postRoutes.js';
 import { initializeSocket } from './utils/socket.js';
 import http from 'http';
+
 config();
 
 const app = express();
@@ -40,11 +42,13 @@ app.get('/', (req, res) => {
 });
 
 // All api routes
+app.use("/api/v1/posts",postRoutes)
 app.use('/api/jobs', jobRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/v1/recruiter', recuiterRoutes);
 app.use('/api/v1/user',userRoutes)
 app.use('/api/v1/friends',friendRoutes)
+
 
 // Handle 404 routes
 app.all('*', (req, res) => {
