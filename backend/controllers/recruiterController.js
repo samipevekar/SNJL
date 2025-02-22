@@ -33,7 +33,10 @@ export const registerRecruiter = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Password must be at least 8 characters long" });
     }
 
-    const existingUser = await Recruiter.findOne({ $or: [{ email }, { phone }] });
+    // Check if user already exists
+    const existingUser = await Recruiter.findOne({
+      $or: [{ email }, { phone }],
+    });
     if (existingUser) {
       return res.status(400).json({ success: false, message: "User already exists" });
     }
@@ -86,6 +89,8 @@ export const verifyEmail = async (req, res, next) => {
       phone: userData.phone,
       password: userData.password,
       role: "Recruiter",
+      profileImage: profileImageUrl,
+      isPhoneVerified: true,
     });
 
     await newUser.save();
@@ -95,7 +100,8 @@ export const verifyEmail = async (req, res, next) => {
 
     res.status(201).json({ success: true, message: "User registered successfully", token, user: newUser });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error" });
+    console.error("Error verifying phone:", error);
+    res.status(500).json({ success :false ,message: "Internal server error" });
   }
 };
 export const loginRecruiter = async (req, res) => {

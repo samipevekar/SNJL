@@ -42,7 +42,7 @@ console.log(req.body)
     }
 
     // Check if worker already exists
-    const existingWorker = await User.findOne({ $or: [{ email }, { phone }] });
+    const existingWorker = await User.findOne({email:email});
     if (existingWorker) {
       return res.status(400).json({ message: "Worker already exists" });
     }
@@ -107,7 +107,6 @@ export const verifyUser = async (req, res, next) => {
       email: workerData.email || null,
       phone: workerData.phone || undefined,
 
-      role: "User",
       password: hashedPassword,
 
       password: workerData.password,
@@ -123,7 +122,11 @@ export const verifyUser = async (req, res, next) => {
     unverifiedWorkers.delete(email);
 
     // Generate JWT token
+<<<<<<< HEAD
     const token = generateToken(newUser._id, newWorker.role);
+=======
+    const token = generateToken(newWorker._id, newWorker.role);
+>>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
 
     res.status(201).json({ success: true, message: "User registered successfully", token, user: newWorker });
   } catch (error) {
@@ -143,7 +146,7 @@ export const loginUser = async (req, res) => {
     }
 
     // Find worker by email or phone
-    const worker = await User.findOne({ $or: [{ email }, { phone }] }).select("+password");
+    const worker = await User.findOne({email:email }).select("+password");
 
     if (!worker) {
       return res.status(401).json({ success: false, message: "Invalid email/phone or password" });
@@ -169,5 +172,10 @@ export const loginUser = async (req, res) => {
 
 // Logout worker
 export const logoutUser  = (req, res) => {
+<<<<<<< HEAD
+=======
+  let user = req.user
+  console.log('user : ',user)
+>>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
   res.status(200).json({ success: true, message: "Logout successful" });
 };

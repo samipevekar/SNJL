@@ -7,6 +7,7 @@ const recruiterSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, "Please provide your name"],
+    trim: true,
   },
   email: {
     type: String,
@@ -14,11 +15,13 @@ const recruiterSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     validate: [validator.isEmail, "Please provide a valid email"],
+    trim:true
   },
   phone: {
     type: String,
     required: [true, "Please provide your phone number"],
     unique: true,
+    trim:true,
     validate: {
       validator: function (value) {
         return validator.isMobilePhone(value, "any", { strictMode: false });

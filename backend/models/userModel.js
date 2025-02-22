@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, "Please provide your name"],
+    trim:true
   },
   email: {
     type: String,
@@ -13,11 +14,13 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     sparse: true, // Allows either email or phone to be missing
     validate: [validator.isEmail, "Please provide a valid email"],
+    trim:true
   },
   phone: {
     type: String,
     unique: true,
     sparse: true,
+    trim:true,
     validate: {
       validator: function (value) {
         return !value || validator.isMobilePhone(value, "any", { strictMode: false }); 

@@ -12,18 +12,22 @@ import chatRoutes from './routes/chatRoutes.js';
 import friendRoutes from './routes/friendRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import { initializeSocket } from './utils/socket.js';
+<<<<<<< HEAD
 import http from 'http';
+=======
+import ratingRoutes from './routes/ratingRoute.js'
+import postRoutes from './routes/postRoutes.js'
+import {app, server } from './socket/socket.js';
+>>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
 
 config();
 
-const app = express();
 const PORT = process.env.PORT || 5000;
 
 
 
 // MongoDB connection
 connectMongo();
-const server = http.createServer(app);
 // Middlewares
 app.use(express.json({limit:"20mb"}));
 app.use(express.urlencoded({ extended: true }));
@@ -42,12 +46,20 @@ app.get('/', (req, res) => {
 });
 
 // All api routes
+<<<<<<< HEAD
 app.use("/api/v1/posts",postRoutes)
 app.use('/api/jobs', jobRoutes);
 app.use('/api/chat', chatRoutes);
+=======
+>>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
 app.use('/api/v1/recruiter', recuiterRoutes);
 app.use('/api/v1/user',userRoutes)
-app.use('/api/v1/friends',friendRoutes)
+app.use('/api/jobs', jobRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/friends',friendRoutes)
+app.use('/api/ratings', ratingRoutes);
+app.use('/api/posts', postRoutes);
+
 
 
 // Handle 404 routes
@@ -59,4 +71,4 @@ app.all('*', (req, res) => {
 app.use(errorMiddleware);
 initializeSocket(server);
 // Start server
-server.listen(PORT, () => console.log(`Server is listening on http://localhost:${PORT}`));
+server.listen(PORT,"0.0.0.0", () => console.log(`Server is listening on http://localhost:${PORT}`));

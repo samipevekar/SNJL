@@ -7,6 +7,7 @@ import { uploadOnCloudinary } from '../utils/cloudinary.js';
 export const createPost = async (req, res) => {
     try {
       const { caption } = req.body;
+<<<<<<< HEAD
       const user = req.user; // Authenticated user
       const files = req.files; // Uploaded files from frontend
       console.log("files", files)
@@ -30,6 +31,36 @@ export const createPost = async (req, res) => {
       // Create new post
       const post = await Post.create({
         user: user.id,
+=======
+      const userId = req.user.id; // Authenticated user
+      const file = req.file; // Uploaded files from frontend
+
+      if (!file || file.length === 0) {
+        return res.status(400).json({ success: false, message: "No media uploaded" });
+      }
+  
+      let user = await User.findById(userId)
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found"})
+      }
+
+      // Upload file to Cloudinary
+          const result = await uploadOnCloudinary(file.path, "auto");
+          let uploadedMedia = {
+            url: result.secure_url,
+            mediaType: file.mimetype.startsWith("video")
+              ? "video"
+              : file.mimetype.startsWith("audio")
+              ? "audio"
+              : "image", // Default image
+            publicId: result.public_id // Save publicId for deletion later
+          };
+      
+  
+      // Create new post
+      const post = await Post.create({
+        user: userId,
+>>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
         userModel: user.role,
         media: uploadedMedia,
         caption
@@ -45,6 +76,7 @@ export const createPost = async (req, res) => {
 // Like/unlike post
 export const toggleLike = async (req, res) => {
   try {
+<<<<<<< HEAD
     const post = await Post.findById(req.params.postId);
     const user = req.user;
     
@@ -58,6 +90,37 @@ export const toggleLike = async (req, res) => {
     
     await post.save();
     res.json({ success: true, likes: post.likes.length });
+=======
+    const postId = req.params.postId;
+    const userId = req.user?.id;
+
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    let post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    const isLiked = post.likes.includes(userId);
+
+    if (isLiked) {
+      post = await Post.findByIdAndUpdate(
+        postId,
+        { $pull: { likes: userId } },
+        { new: true } // To return the updated document
+      );
+    } else {
+      post = await Post.findByIdAndUpdate(
+        postId,
+        { $addToSet: { likes: userId } }, // $addToSet prevents duplicate entries
+        { new: true }
+      );
+    }
+
+    res.status(200).json({ success: true, likes: post.likes.length });
+>>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -137,4 +200,46 @@ export const getFriendPosts = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+<<<<<<< HEAD
 };
+=======
+};
+
+// delete post
+export const deletePost = async (req,res)=>{
+    try {
+        const userId = req.user.id
+        const postId = req.params.postId
+
+        const post = await Post.findById(postId)
+        if(!post) return res.status(404).json({success:false, message:'Post not found'})
+
+        if(userId.toString() === post.user.toString()){
+            await Post.findByIdAndDelete(postId,{new:true})
+        }else{
+            return res.status(403).json({success:false, message:'You are not the owner of this post'})
+        }
+
+        res.status(200).json({messge:"post deleted successfully"})
+        
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+        console.log(error.message)
+    }
+}
+
+// get own posts
+export const getPostById = async(req,res)=>{
+    try {
+        const userId = req.params.id
+
+        let ownPosts = await Post.find({user:userId})
+
+        res.status(200).json(ownPosts)
+
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+        console.log("Error in getOwnPosts controller",error.message)
+    }
+}
+>>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
