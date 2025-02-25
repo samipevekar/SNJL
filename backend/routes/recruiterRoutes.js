@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { isLoggedIn } from "../middlewares/employerAuthMiddleware.js"
 import upload from "../middlewares/multerMiddleware.js";
-import { loginRecruiter, logoutRecruiter, registerRecruiter, verifyEmail,  } from '../controllers/recruiterController.js'
+import { getRecruiter, loginRecruiter, logoutRecruiter, registerRecruiter, verifyEmail,  } from '../controllers/recruiterController.js'
 
 
 
@@ -11,6 +11,7 @@ recruiterRouter.post('/register' , upload.single('profileImage'), registerRecrui
 recruiterRouter.post('/verify' ,verifyEmail)
 recruiterRouter.post('/login' ,loginRecruiter)
 recruiterRouter.post('/logout' ,isLoggedIn,logoutRecruiter)
+recruiterRouter.get('/' ,isLoggedIn,getRecruiter)
 
 
 export default recruiterRouter

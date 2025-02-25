@@ -172,3 +172,20 @@ export const logoutUser  = (req, res) => {
   console.log('user : ',user)
   res.status(200).json({ success: true, message: "Logout successful" });
 };
+
+// get user
+export const getUser = async(req,res)=>{
+  try {
+    let userId = req.user.id
+
+    let user = await User.findById(userId)
+    if(!user){
+      res.status(400).json({message:"User not found"})
+    }
+  
+    res.status(200).json(user)
+  } catch (error) {
+    res.status(500).json({message:"Internal server error"})
+    console.log("Error in getUser controller",error.message)
+  }
+}

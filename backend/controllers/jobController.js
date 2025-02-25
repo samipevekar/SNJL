@@ -6,8 +6,14 @@ export const createJob = async (req, res) => {
   // const userId = "65c778ab12df56789abc1234"; //65c778ab12df56789abc1239
   // console.log(req.user.id)
   const userId = req.user.id
+  const role = req.user.role
 
   try {
+
+    if(role !== 'Recruiter'){
+      return res.status(401).json({ message: "You cannot create a job"})
+    }
+
     const job = new Job({ ...req.body, postedBy: userId });
     let savedJob = await job.save();
     res.status(200).json(savedJob);
@@ -67,7 +73,7 @@ export const deleteJob = async (req, res) => {
   try {
     let createdJob = await Job.findById(id)
     if(createdJob.postedBy.toString() !== userId){
-      return res.status(401).json({message: "You are not authorized to update this job"})
+      return res.status(401).json({message: "You are not authorized to delete this job"})
     }
 
     const job = await Job.findByIdAndDelete(id, req.body, { new: true });

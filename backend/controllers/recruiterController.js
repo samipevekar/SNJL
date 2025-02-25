@@ -13,19 +13,26 @@ const generateVerificationCode = () => {
 
 const unverifiedUsers = new Map();
 
-export const registerRecruiter = async (req, res, next) => {
+export const registerRecruiter = async (req, res) => {
   const { name, email, phone, password } = req.body;
 
   try {
-    if (!name || !email || !phone || !password) {
-      return res.status(400).json({ success: false, message: "All fields are required" });
+    // Validate input
+    if (!name || !password) {
+      return res.status(400).json({ success: false, message: "Name and password are required" });
     }
 
-    if (!validator.isEmail(email)) {
+    if (!email && !phone) {
+      return res.status(400).json({ success: false, message: "Either email or phone number is required" });
+    }
+
+    // Ensure email is provided before validation
+    if (email && !validator.isEmail(email)) {
       return res.status(400).json({ success: false, message: "Invalid email" });
     }
 
-    if (!validator.isMobilePhone(phone, "any", { strictMode: false })) {
+    // Ensure phone is provided before validation
+    if (phone && !validator.isMobilePhone(phone, "any", { strictMode: false })) {
       return res.status(400).json({ success: false, message: "Invalid phone number" });
     }
 
@@ -33,7 +40,7 @@ export const registerRecruiter = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Password must be at least 8 characters long" });
     }
 
-    const existingUser = await Recruiter.findOne({email:email});
+    const existingUser = await Recruiter.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ success: false, message: "User already exists" });
     }
@@ -54,9 +61,11 @@ export const registerRecruiter = async (req, res, next) => {
 
     res.status(201).json({ success: true, message: "Verification email sent. Please verify your email." });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
 
 export const verifyEmail = async (req, res, next) => {
   const { email, code } = req.body;
@@ -127,3 +136,20 @@ export const loginRecruiter = async (req, res) => {
 export const logoutRecruiter = (req, res) => {
   res.status(200).json({ success: true, message: "Logout successful" });
 };
+
+// get user
+export const getRecruiter = async(req,res)=>{
+  try {
+    let userId = req.user.id
+
+    let recruiter = await Recruiter.findById(userId)
+    if(!recruiter){
+      res.status(400).json({message:"User not found"})
+    }
+  
+    res.status(200).json(recruiter)
+  } catch (error) {
+    res.status(500).json({message:"Internal server error"})
+    console.log("Error in getUser controller",error.message)
+  }
+}

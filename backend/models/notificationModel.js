@@ -23,7 +23,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ["friend_request"],
+    enum: ["friend_request","friend_request_accepted"],
     required: true
   },
   message: String,

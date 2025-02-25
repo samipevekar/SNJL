@@ -8,16 +8,13 @@ export const createPost = async (req, res) => {
     try {
       const { caption } = req.body;
       const userId = req.user.id; // Authenticated user
+      const role = req.user.role
       const file = req.file; // Uploaded files from frontend
 
       if (!file || file.length === 0) {
         return res.status(400).json({ success: false, message: "No media uploaded" });
       }
   
-      let user = await User.findById(userId)
-      if (!user) {
-        return res.status(404).json({ success: false, message: "User not found"})
-      }
 
       // Upload file to Cloudinary
           const result = await uploadOnCloudinary(file.path, "auto");
@@ -35,7 +32,7 @@ export const createPost = async (req, res) => {
       // Create new post
       const post = await Post.create({
         user: userId,
-        userModel: user.role,
+        userModel: role,
         media: uploadedMedia,
         caption
       });
@@ -51,7 +48,7 @@ export const createPost = async (req, res) => {
 export const toggleLike = async (req, res) => {
   try {
     const postId = req.params.postId;
-    const userId = req.user?.id;
+    const userId = req.user.id;
 
     if (!req.user) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
@@ -87,7 +84,7 @@ export const toggleLike = async (req, res) => {
 // Add comment
 export const addComment = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId);
+    const post = await Post.findById(req.params.postId).populate('comments.user');
     const { text } = req.body;
 
     post.comments.push({

@@ -18,13 +18,13 @@ const postRoutes = Router();
 
 
 
-postRoutes.post("/createpost", checkAuth, upload.single("file"), createPost);
-postRoutes.patch('/:postId/like',checkAuth, toggleLike);
-postRoutes.post('/:postId/comment', checkAuth, addComment);
+postRoutes.post("/createpost", isLoggedIn, upload.single("file"), createPost);
+postRoutes.patch('/:postId/like',isLoggedIn, toggleLike);
+postRoutes.post('/:postId/comment', isLoggedIn, addComment);
 postRoutes.get('/trending', getTrendingPosts);
 postRoutes.get('/random', getRandomPosts);
-postRoutes.get('/friends',checkAuth, getFriendPosts);
-postRoutes.delete('/:postId',checkAuth, deletePost);
-postRoutes.get('/:id',checkAuth, getPostById);
+postRoutes.get('/friends',isLoggedIn, getFriendPosts);
+postRoutes.delete('/:postId',isLoggedIn, deletePost);
+postRoutes.get('/:id', getPostById);
 
 export default postRoutes;

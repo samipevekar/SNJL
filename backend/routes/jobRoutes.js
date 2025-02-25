@@ -14,7 +14,7 @@ app.get('/search',searchJob)                                // Get all applicati
 app.get('/:id',getSingleJob)                                // Get single job
 app.put('/:id',isLoggedIn,updateJob)                                   // Update a job
 app.delete('/:id',isLoggedIn,deleteJob)                                // Delete a job
-app.post('/apply/:id',isUserLoggedIn,upload.fields([{ name: "resume" }, { name: "file" }]),jobApply)                             // Apply a job
+app.post('/apply/:id',isLoggedIn,upload.fields([{ name: "resume" }, { name: "file" }]),jobApply)                             // Apply a job
 app.get('/applicants/:id',isLoggedIn,getAllApplicants)                 // Get all applications
 
 export default app

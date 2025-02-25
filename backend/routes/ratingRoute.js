@@ -26,10 +26,10 @@ const checkAuth = (req, res, next) => {
   }
 };
 
-router.post('/create', checkAuth, createRating);
-router.get('/received', checkAuth, getReceivedRatings);
+router.post('/create', isLoggedIn, createRating);
+router.get('/received', isLoggedIn, getReceivedRatings);
 router.get('/received/:userId', getReceivedRatings);
-router.get('/given', checkAuth, getGivenRatings);
+router.get('/given', isLoggedIn, getGivenRatings);
 router.get('/average/:userId', getAverageRating);
 
 
