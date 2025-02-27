@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getUser, loginUser, logoutUser , registerUser, verifyUser } from "../controllers/userController.js";
+import { getUser, loginUser, logoutUser , registerUser, verifyUser, userLoginWithGoogle } from "../controllers/userController.js";
 import { isLoggedIn } from "../middlewares/employerAuthMiddleware.js";
 
 const userRoutes = Router();
@@ -18,5 +18,8 @@ userRoutes.post("/logout", isLoggedIn, logoutUser);
 
 // get worker
 userRoutes.get("/", isLoggedIn, getUser);
+
+// google authentication
+userRoutes.post('/google', userLoginWithGoogle)
 
 export default userRoutes;

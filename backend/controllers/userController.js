@@ -106,9 +106,6 @@ export const verifyUser = async (req, res, next) => {
       name: workerData.name,
       email: workerData.email || null,
       phone: workerData.phone || undefined,
-
-      password: hashedPassword,
-
       password: workerData.password,
       // profileImage: profileImageUrl,
       isPhoneVerified: true,
@@ -148,6 +145,13 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid email/phone or password" });
     }
 
+    if(worker.isGoogleUser){
+      return res.status(400).json({
+        success: false,
+        message: "This email is registered with Google. Please login using Google.",
+      });
+    }
+
     // Compare passwords
     const isPasswordValid = await bcrypt.compare(password, worker.password);
 
@@ -156,8 +160,8 @@ export const loginUser = async (req, res) => {
     }
 
     // Generate JWT token
- const token = generateToken(worker._id, worker.role);
-     worker.password = undefined;
+    const token = generateToken(worker._id, worker.role);
+    worker.password = undefined;
 
     res.status(200).json({ success: true, message: "Login successful", token, worker });
   } catch (error) {
@@ -187,5 +191,55 @@ export const getUser = async(req,res)=>{
   } catch (error) {
     res.status(500).json({message:"Internal server error"})
     console.log("Error in getUser controller",error.message)
+  }
+}
+
+// google authentication
+export const userLoginWithGoogle = async(req,res)=>{
+  const { email, googleId, name } = req.body;
+
+  try {
+    let user = await User.findOne({ email });
+
+    if (user) {
+      if (!user.isGoogleUser) {
+        return res.status(400).json({
+          success: false,
+          message: "This email is already registered. You can login with another email",
+        });
+      }
+
+      // User is already a Google user, so generate JWT token
+      const token = generateToken(user._id, user.role);
+      return res.json({
+        success: true,
+        message: "Login successful",
+        token,
+        user,
+      });
+    }
+
+    // If no user exists, create a new Google user
+    user = new User({
+      name,
+      email,
+      googleId,
+      isGoogleUser: true
+    });
+
+    await user.save();
+
+    // Generate JWT token for new user
+    const token = generateToken(user._id, user.role);
+
+    res.json({
+      success: true,
+      message: "New Google account created",
+      token,
+      user,
+    });
+  } catch (error) {
+    console.error("Error in Google login:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 }

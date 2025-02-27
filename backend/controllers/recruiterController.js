@@ -92,8 +92,10 @@ export const verifyEmail = async (req, res, next) => {
     const newUser = new Recruiter({
       name: userData.name,
       email: userData.email,
-      phone: userData.phone,
-      password: userData.password,
+      phone: userData.phone || undefined,
+      password: userData.password,      
+      isPhoneVerified: true,
+      verificationCode: null,
     });
 
     await newUser.save();
@@ -118,6 +120,13 @@ export const loginRecruiter = async (req, res) => {
     const user = await Recruiter.findOne({ email }).select("+password");
     if (!user) {
       return res.status(401).json({ success: false, message: "Invalid email or password" });
+    }
+
+    if(user.isGoogleUser){
+      return res.status(400).json({
+        success: false,
+        message: "This email is registered with Google. Please login using Google.",
+      });
     }
 
     const isPasswordValid = await user.comparePassword(password);
@@ -151,5 +160,55 @@ export const getRecruiter = async(req,res)=>{
   } catch (error) {
     res.status(500).json({message:"Internal server error"})
     console.log("Error in getUser controller",error.message)
+  }
+}
+
+// google authentication
+export const recruiterLoginWithGoogle = async(req,res)=>{
+  const { email, googleId, name } = req.body;
+
+  try {
+    let user = await Recruiter.findOne({ email });
+
+    if (user) {
+      if (!user.isGoogleUser) {
+        return res.status(400).json({
+          success: false,
+          message: "This email is already registered. You can login with another email",
+        });
+      }
+
+      // User is already a Google user, so generate JWT token
+      const token = generateToken(user._id, user.role);
+      return res.json({
+        success: true,
+        message: "Login successful",
+        token,
+        user,
+      });
+    }
+
+    // If no user exists, create a new Google user
+    user = new Recruiter({
+      name,
+      email,
+      googleId,
+      isGoogleUser: true
+    });
+
+    await user.save();
+
+    // Generate JWT token for new user
+    const token = generateToken(user._id, user.role);
+
+    res.json({
+      success: true,
+      message: "New Google account created",
+      token,
+      user,
+    });
+  } catch (error) {
+    console.error("Error in Google login:", error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 }

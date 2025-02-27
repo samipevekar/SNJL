@@ -17,22 +17,18 @@ const recruiterSchema = new mongoose.Schema({
     trim: true,
   },
   phone: {
-    type: String,
-    unique: true,
-    sparse: true,
-    trim: true,
-    validate: {
-      validator: function (value) {
-        return (
-          !value || validator.isMobilePhone(value, "any", { strictMode: false })
-        );
+      type: String,
+      sparse: true,
+      trim:true,
+      validate: {
+        validator: function (value) {
+          return !value || validator.isMobilePhone(value, "any", { strictMode: false }); 
+        },
+        message: "Please provide a valid phone number",
       },
-      message: "Please provide a valid phone number",
     },
-  },
   password: {
     type: String,
-    required: [true, "Please provide a password"],
     minlength: [8, "Password must be at least 8 characters long"],
     select: false, // Hide password from query results
   },
@@ -49,6 +45,15 @@ const recruiterSchema = new mongoose.Schema({
   role: {
     type: String,
     default: "Recruiter",
+  },
+  googleId: {
+    type: String, // Store Google user ID
+    unique: true,
+    sparse: true, // Allow normal users to have null Google ID
+  },
+  isGoogleUser: {
+    type: Boolean,
+    default: false, // To differentiate Google users from normal users
   },
   isPhoneVerified: {
     type: Boolean,

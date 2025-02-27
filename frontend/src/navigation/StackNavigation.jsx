@@ -22,7 +22,7 @@ const StackNavigation = () => {
       <Stack.Screen name="RecruiterRegister" component={RecruiterRegister} />
       <Stack.Screen name="RecruiterLogin" component={RecruiterLogin} />
       <Stack.Screen name="RecruiterVerify" component={RecruiterVerify} />
-      <Stack.Screen name="Home" component={Home} />
+      <Stack.Screen name="Home" component={Home} options={{animation:'fade'}} />
       <Stack.Screen name="AuthCheck" component={AuthCheck} />
     </Stack.Navigator>
   );

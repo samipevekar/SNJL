@@ -1,12 +1,16 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import {
   loginRecruiter,
+  recruiterLoginWithGoogle,
   registerRecruiter,
   verifyRecruiter,
 } from "../api/recruiterAuthAPi.js";
 
 const initialState = {
-  status: "idle",
+  registerStatus: "idle",
+  verifyStatus: "idle",
+  loginStatus: "idle",
+  googleLoginStatus: "idle"
 };
 
 export const registerRecruiterAsync = createAsyncThunk(
@@ -33,6 +37,14 @@ export const loginRecruiterAsync = createAsyncThunk(
   }
 );
 
+export const recruiterLoginWithGoogleAsync = createAsyncThunk(
+  "user/recruiterLoginWithGoogle",
+  async ({ data, navigation }) => {
+    const response = await recruiterLoginWithGoogle(data, navigation);
+    return response;
+  }
+);
+
 export const recruiterAuthSlice = createSlice({
   name: "recruiter",
   initialState,
@@ -40,35 +52,47 @@ export const recruiterAuthSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(registerRecruiterAsync.pending, (state) => {
-        state.status = "loading";
+        state.registerStatus = "loading";
       })
       .addCase(registerRecruiterAsync.fulfilled, (state) => {
-        state.status = "idle";
+        state.registerStatus = "idle";
       })
       .addCase(registerRecruiterAsync.rejected, (state) => {
-        state.status = "idle";
+        state.registerStatus = "idle";
       })
       .addCase(verifyRecruiterAsync.pending, (state) => {
-        state.status = "loading";
+        state.verifyStatus = "loading";
       })
       .addCase(verifyRecruiterAsync.fulfilled, (state) => {
-        state.status = "idle";
+        state.verifyStatus = "idle";
       })
       .addCase(verifyRecruiterAsync.rejected, (state) => {
-        state.status = "idle";
+        state.verifyStatus = "idle";
       })
       .addCase(loginRecruiterAsync.pending, (state) => {
-        state.status = "loading";
+        state.loginStatus = "loading";
       })
       .addCase(loginRecruiterAsync.fulfilled, (state) => {
-        state.status = "idle";
+        state.loginStatus = "idle";
       })
       .addCase(loginRecruiterAsync.rejected, (state) => {
-        state.status = "idle";
+        state.loginStatus = "idle";
+      })
+      .addCase(recruiterLoginWithGoogleAsync.pending, (state) => {
+        state.googleLoginStatus = "loading";
+      })
+      .addCase(recruiterLoginWithGoogleAsync.fulfilled, (state) => {
+        state.googleLoginStatus = "idle";
+      })
+      .addCase(recruiterLoginWithGoogleAsync.rejected, (state) => {
+        state.googleLoginStatus = "idle";
       });
   },
 });
 
-export const selectRecruiterStatus = (state) => state.recruiterAuth.status;
+export const selectRecruiterRegisterStatus = (state) => state.recruiterAuth.registerStatus;
+export const selectRecruiterLoginStatus = (state) => state.recruiterAuth.loginStatus;
+export const selectRecruiterVerifyStatus = (state) => state.recruiterAuth.verifyStatus;
+export const selectRecruiterGoogleStatus = (state) => state.recruiterAuth.googleLoginStatus;
 
 export default recruiterAuthSlice.reducer;

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -6,12 +6,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Pressable,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import Arrow from "react-native-vector-icons/AntDesign";
 import {
+  registerRecruiterAsync,
+  selectRecruiterRegisterStatus,
   selectRecruiterStatus,
+  selectRecruiterVerifyStatus,
   verifyRecruiterAsync,
 } from "../../store/slices/recruiterAuthSlice";
 
@@ -22,9 +26,14 @@ const RecruiterVerify = ({ navigation, route }) => {
   const inputRefs = Array.from({ length: 6 }, () => useRef(null));
   const otpValues = watch("otp");
 
+  const [timer, setTimer] = useState(30);
+    const [showTimer, setShowTimer] = useState(false);
+    const intervalRef = useRef(null); // ✅ Interval ko track karne ke liye ref
+
   const dispatch = useDispatch();
 
-  const loading = useSelector(selectRecruiterStatus);
+  const loading = useSelector(selectRecruiterVerifyStatus);
+  const resendLoading = useSelector(selectRecruiterRegisterStatus)
 
   const onSubmit = async (data) => {
     const otpCode = data.otp.join("");
@@ -39,6 +48,49 @@ const RecruiterVerify = ({ navigation, route }) => {
     );
   };
 
+  const handleResendOtp = () => {
+      dispatch(
+        registerRecruiterAsync({
+          data: {
+            name: route.params.name,
+            email: route.params.email,
+            password: route.params.password,
+          },
+          navigation,
+          reset,
+        })
+      );
+  
+      setShowTimer(true);
+      setTimer(30); //  Reset timer to 30
+  
+      // clear interval
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+  
+      // starting new interval
+      intervalRef.current = setInterval(() => {
+        setTimer((prevTimer) => {
+          if (prevTimer <= 1) {
+            clearInterval(intervalRef.current);
+            setShowTimer(false); // Timer khatam hone par hide kar do
+            return 0;
+          }
+          return prevTimer - 1;
+        });
+      }, 1000);
+    };
+
+    // ✅ Cleanup effect
+      useEffect(() => {
+        return () => {
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+          }
+        };
+      }, []);
+      
   return (
     <View style={styles.container}>
       <View style={styles.verifyHeader}>
@@ -85,13 +137,27 @@ const RecruiterVerify = ({ navigation, route }) => {
         ))}
       </View>
       <TouchableOpacity
-        style={styles.verifyButton}
+        style={[styles.verifyButton,loading=='loading' && {opacity:0.5}]}
         onPress={handleSubmit(onSubmit)}
       >
         <Text disabled={loading == "loading"} style={styles.verifyText}>
           {loading == "loading" ? "Verifying..." : "Verify"}
         </Text>
       </TouchableOpacity>
+
+      <Pressable style={styles.resend}>
+              <Text
+                style={[
+                  styles.resendBtn,
+                  (timer > 0 && timer < 30) && { opacity: 0.4 },
+                ]}
+                disabled={timer > 0 && timer < 30}
+                onPress={handleResendOtp}
+              >
+                {resendLoading === "loading" ? "Sending OTP..." : "Resend OTP"}
+              </Text>
+              {showTimer && <Text style={{ color: "gray" }}>(00:{timer})</Text>}
+            </Pressable>
     </View>
   );
 };
@@ -136,6 +202,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   verifyText: { color: "white", fontSize: 18, fontWeight: "bold" },
+  resend: {
+    marginTop: 15,
+    flexDirection: "row",
+    gap: 10,
+  },
+  resendBtn: {
+    fontWeight: "900",
+  },
 });
 
 export default RecruiterVerify;

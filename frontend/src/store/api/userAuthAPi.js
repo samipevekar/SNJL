@@ -5,7 +5,7 @@ import { storeToken } from "../../storage/AuthStorage";
 export const registerUser = async (data, navigation, reset) => {
   try {
     const response = await fetch(
-      "http://192.168.41.81:5000/api/v1/user/register",
+      "http://192.168.178.81:5000/api/v1/user/register",
       {
         method: "POST",
         headers: {
@@ -24,7 +24,7 @@ export const registerUser = async (data, navigation, reset) => {
 
     if (response.ok) {
       Alert.alert("Email Verification", responseData.message);
-      navigation.navigate("UserVerify", { email: data.email }); // ✅ Correct way to use navigation
+      navigation.navigate("UserVerify", { email: data.email, name:data.name, password:data.password }); // ✅ Correct way to use navigation
     } else {
       Alert.alert("Error", responseData.message);
     }
@@ -42,7 +42,7 @@ export const registerUser = async (data, navigation, reset) => {
 export const verifyUser = async (email, code, reset, navigation) => {
   try {
     const response = await fetch(
-      "http://192.168.41.81:5000/api/v1/user/verify",
+      "http://192.168.178.81:5000/api/v1/user/verify",
       {
         method: "POST",
         headers: {
@@ -78,7 +78,7 @@ export const verifyUser = async (email, code, reset, navigation) => {
 
 export const loginUser = async (data, navigation, reset) => {
   try {
-    let response = await fetch("http://192.168.41.81:5000/api/v1/user/login", {
+    let response = await fetch("http://192.168.178.81:5000/api/v1/user/login", {
       // Use 127.0.0.1 for iOS
       method: "POST",
       headers: {
@@ -110,5 +110,45 @@ export const loginUser = async (data, navigation, reset) => {
   } finally {
     setIsLoading(false);
     reset();
+  }
+};
+
+export const userLoginWithGoogle = async (data, navigation) => {
+  try {
+    let response = await fetch(
+      "http://192.168.178.81:5000/api/v1/user/google",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.email,
+          name: data.name,
+          googleId: data.id,
+        }),
+      }
+    );
+
+    let responseData = await response.json();
+    console.log(responseData);
+
+    // if (response.ok) {
+    storeToken(responseData.token);
+    // }
+
+    if (response.ok) {
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "AuthCheck" }], // to delete all routes form stack
+        })
+      );
+    } else {
+      Alert.alert("Login Failed", responseData.message);
+    }
+  } catch (error) {
+    console.log("Error:", error.message);
+    Alert.alert("Error", "An error occurred during login");
   }
 };

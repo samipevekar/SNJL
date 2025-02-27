@@ -18,7 +18,6 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    unique: true,
     sparse: true,
     trim:true,
     validate: {
@@ -30,7 +29,6 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, "Please provide a password"],
     minlength: [8, "Password must be at least 8 characters long"],
     select: false, // Hide password from query results
   },
@@ -48,6 +46,15 @@ const userSchema = new mongoose.Schema({
       friendModel: { type: String, enum: ["User", "Recruiter"], required: true }
     }
   ],
+  googleId: {
+    type: String, // Store Google user ID
+    unique: true,
+    sparse: true, // Allow normal users to have null Google ID
+  },
+  isGoogleUser: {
+    type: Boolean,
+    default: false, // To differentiate Google users from normal users
+  },
   isPhoneVerified: {
     type: Boolean,
     default: false,

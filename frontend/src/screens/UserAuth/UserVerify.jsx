@@ -1,16 +1,18 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
+  Pressable,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  selectUserStatus,
+  registerUserAsync,
+  selectUserRegisterStatus,
+  selectUserVerifyStatus,
   verifyUserAsync,
 } from "../../store/slices/userAuthSlice";
 import Arrow from "react-native-vector-icons/AntDesign";
@@ -19,16 +21,20 @@ const Verify = ({ navigation, route }) => {
   const { control, handleSubmit, watch, reset } = useForm({
     defaultValues: { otp: ["", "", "", "", "", ""] },
   });
+
   const inputRefs = Array.from({ length: 6 }, () => useRef(null));
   const otpValues = watch("otp");
 
-  const dispatch = useDispatch();
+  const [timer, setTimer] = useState(30);
+  const [showTimer, setShowTimer] = useState(false);
+  const intervalRef = useRef(null); // ✅ Interval ko track karne ke liye ref
 
-  const loading = useSelector(selectUserStatus);
+  const dispatch = useDispatch();
+  const loading = useSelector(selectUserVerifyStatus);
+  const resendLoading = useSelector(selectUserRegisterStatus)
 
   const onSubmit = async (data) => {
     const otpCode = data.otp.join("");
-
     dispatch(
       verifyUserAsync({
         email: route.params.email,
@@ -39,11 +45,54 @@ const Verify = ({ navigation, route }) => {
     );
   };
 
+  const handleResendOtp = () => {
+    dispatch(
+      registerUserAsync({
+        data: {
+          name: route.params.name,
+          email: route.params.email,
+          password: route.params.password,
+        },
+        navigation,
+        reset,
+      })
+    );
+
+    setShowTimer(true);
+    setTimer(30); //  Reset timer to 30
+
+    // clear interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    // starting new interval
+    intervalRef.current = setInterval(() => {
+      setTimer((prevTimer) => {
+        if (prevTimer <= 1) {
+          clearInterval(intervalRef.current);
+          setShowTimer(false); // Timer khatam hone par hide kar do
+          return 0;
+        }
+        return prevTimer - 1;
+      });
+    }, 1000);
+  };
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.verifyHeader}>
         <Text style={styles.backIcon} onPress={() => navigation.goBack()}>
-          <Arrow size={20} color={"black"} name="left"></Arrow>
+          <Arrow size={20} color={"black"} name="left" />
         </Text>
         <Text style={styles.header}>Verify User</Text>
       </View>
@@ -88,10 +137,24 @@ const Verify = ({ navigation, route }) => {
         style={styles.verifyButton}
         onPress={handleSubmit(onSubmit)}
       >
-        <Text disabled={loading == "loading"} style={styles.verifyText}>
+        <Text disabled={loading == "loading"} style={[styles.verifyText,loading=='loading' && {opacity:0.5}]}>
           {loading == "loading" ? "Verifying..." : "Verify"}
         </Text>
       </TouchableOpacity>
+
+      <Pressable style={styles.resend}>
+        <Text
+          style={[
+            styles.resendBtn,
+            (timer > 0 && timer < 30) && { opacity: 0.4 },
+          ]}
+          disabled={timer > 0 && timer < 30}
+          onPress={handleResendOtp}
+        >
+          {resendLoading === "loading" ? "Sending OTP..." : "Resend OTP"}
+        </Text>
+        {showTimer && <Text style={{ color: "gray" }}>(00:{timer})</Text>}
+      </Pressable>
     </View>
   );
 };
@@ -136,6 +199,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   verifyText: { color: "white", fontSize: 18, fontWeight: "bold" },
+  resend: {
+    marginTop: 15,
+    flexDirection: "row",
+    gap: 10,
+  },
+  resendBtn: {
+    fontWeight: "900",
+  },
 });
 
 export default Verify;
