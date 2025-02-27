@@ -122,11 +122,7 @@ export const verifyUser = async (req, res, next) => {
     unverifiedWorkers.delete(email);
 
     // Generate JWT token
-<<<<<<< HEAD
-    const token = generateToken(newUser._id, newWorker.role);
-=======
     const token = generateToken(newWorker._id, newWorker.role);
->>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
 
     res.status(201).json({ success: true, message: "User registered successfully", token, user: newWorker });
   } catch (error) {
@@ -172,10 +168,135 @@ export const loginUser = async (req, res) => {
 
 // Logout worker
 export const logoutUser  = (req, res) => {
-<<<<<<< HEAD
-=======
   let user = req.user
   console.log('user : ',user)
->>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
   res.status(200).json({ success: true, message: "Logout successful" });
+};
+
+// get user
+export const getUser = async(req,res)=>{
+  try {
+    let userId = req.user.id
+
+    let user = await User.findById(userId)
+    if(!user){
+      res.status(400).json({message:"User not found"})
+    }
+  
+    res.status(200).json(user)
+  } catch (error) {
+    res.status(500).json({message:"Internal server error"})
+    console.log("Error in getUser controller",error.message)
+  }
+}
+
+
+
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Validate input
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    // Check if the user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Generate a 6-digit verification code
+    const verificationCode = generateVerificationCode();
+    const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Save the code and expiration time in the unverifiedUsers map
+    unverifiedWorkers.set(email, {
+      email,
+      verificationCode,
+      verificationCodeExpires,
+    });
+
+    // Send the verification code via email
+    await sendVerificationEmail(email, verificationCode);
+
+    res.status(200).json({ success: true, message: "Verification code sent to your email" });
+  } catch (error) {
+    console.error("Error in forgotPassword:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+
+
+export const verifyResetPasswordCode = async (req, res) => {
+  const { email, code } = req.body;
+
+  try {
+    // Validate input
+    if (!email || !code) {
+      return res.status(400).json({ success: false, message: "Email and code are required" });
+    }
+
+    // Check if the user exists in the unverifiedUsers map
+    const userData = unverifiedWorkers.get(email);
+    if (!userData) {
+      return res.status(404).json({ success: false, message: "User not found or verification code expired" });
+    }
+
+    // Check if the code matches
+    if (userData.verificationCode !== code) {
+      return res.status(400).json({ success: false, message: "Invalid verification code" });
+    }
+
+    // Check if the code has expired
+    if (userData.verificationCodeExpires < new Date()) {
+      unverifiedWorkers.delete(email);
+      return res.status(400).json({ success: false, message: "Verification code expired" });
+    }
+
+    // If the code is valid, allow the user to reset their password
+    res.status(200).json({ success: true, message: "Verification code verified. You can now reset your password." });
+  } catch (error) {
+    console.error("Error in verifyResetPasswordCode:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+
+
+
+export const resetPassword = async (req, res) => {
+  const { email, newPassword, reEnterPassword } = req.body;
+
+  try {
+    // Validate input
+    if (!email || !newPassword || !reEnterPassword) {
+      return res.status(400).json({ success: false, message: "Email, new password, and re-entered password are required" });
+    }
+
+    // Check if the new passwords match
+    if (newPassword !== reEnterPassword) {
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+    }
+
+    // Check if the user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Update the user's password
+    user.password = newPassword;
+    await user.save();
+
+    // Clear the user from the unverifiedUsers map
+    unverifiedWorkers.delete(email);
+
+    res.status(200).json({ success: true, message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error in resetPassword:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
 };

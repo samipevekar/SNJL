@@ -1,7 +1,6 @@
-
 import mongoose from "mongoose";
-import validator from 'validator'
-import bcrypt from 'bcryptjs'
+import validator from "validator";
+import bcrypt from "bcryptjs";
 
 const recruiterSchema = new mongoose.Schema({
   name: {
@@ -15,16 +14,18 @@ const recruiterSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     validate: [validator.isEmail, "Please provide a valid email"],
-    trim:true
+    trim: true,
   },
   phone: {
     type: String,
-    required: [true, "Please provide your phone number"],
     unique: true,
-    trim:true,
+    sparse: true,
+    trim: true,
     validate: {
       validator: function (value) {
-        return validator.isMobilePhone(value, "any", { strictMode: false });
+        return (
+          !value || validator.isMobilePhone(value, "any", { strictMode: false })
+        );
       },
       message: "Please provide a valid phone number",
     },
@@ -42,12 +43,12 @@ const recruiterSchema = new mongoose.Schema({
   invites: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User" 
-    }
+      ref: "User",
+    },
   ],
-  role:{
-    type:String,
-    default:"Recruiter"
+  role: {
+    type: String,
+    default: "Recruiter",
   },
   isPhoneVerified: {
     type: Boolean,
@@ -56,8 +57,12 @@ const recruiterSchema = new mongoose.Schema({
   friends: [
     {
       friendId: { type: mongoose.Schema.Types.ObjectId, required: true },
-      friendModel: { type: String, enum: ["User", "Recruiter"], required: true }
-    }
+      friendModel: {
+        type: String,
+        enum: ["User", "Recruiter"],
+        required: true,
+      },
+    },
   ],
   verificationCode: {
     type: String,
@@ -76,9 +81,9 @@ recruiterSchema.pre("save", async function (next) {
 
 // Compare passwords
 recruiterSchema.methods.comparePassword = async function (candidatePassword) {
-  console.log("candidatePassword",candidatePassword)
+  console.log("candidatePassword", candidatePassword);
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
 const Recruiter = mongoose.model("Recruiter", recruiterSchema);
-export default Recruiter
+export default Recruiter;

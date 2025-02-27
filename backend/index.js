@@ -12,13 +12,8 @@ import chatRoutes from './routes/chatRoutes.js';
 import friendRoutes from './routes/friendRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import { initializeSocket } from './utils/socket.js';
-<<<<<<< HEAD
-import http from 'http';
-=======
 import ratingRoutes from './routes/ratingRoute.js'
-import postRoutes from './routes/postRoutes.js'
 import {app, server } from './socket/socket.js';
->>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
 
 config();
 
@@ -46,12 +41,6 @@ app.get('/', (req, res) => {
 });
 
 // All api routes
-<<<<<<< HEAD
-app.use("/api/v1/posts",postRoutes)
-app.use('/api/jobs', jobRoutes);
-app.use('/api/chat', chatRoutes);
-=======
->>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
 app.use('/api/v1/recruiter', recuiterRoutes);
 app.use('/api/v1/user',userRoutes)
 app.use('/api/jobs', jobRoutes);

@@ -7,42 +7,14 @@ import { uploadOnCloudinary } from '../utils/cloudinary.js';
 export const createPost = async (req, res) => {
     try {
       const { caption } = req.body;
-<<<<<<< HEAD
-      const user = req.user; // Authenticated user
-      const files = req.files; // Uploaded files from frontend
-      console.log("files", files)
-  
-      if (!files || files.length === 0) {
-        return res.status(400).json({ success: false, message: "No media uploaded" });
-      }
-  
-      // Upload each file to Cloudinary
-      const uploadedMedia = await Promise.all(
-        files.map(async (file) => {
-          const result = await uploadOnCloudinary(file.path, "auto");
-          return {
-            url: result.secure_url, 
-            mediaType: file.mimetype.startsWith("video") ? "video" : "image",
-            publicId: result.public_id // Save publicId for deletion later
-          };
-        })
-      );
-  
-      // Create new post
-      const post = await Post.create({
-        user: user.id,
-=======
       const userId = req.user.id; // Authenticated user
+      const role = req.user.role
       const file = req.file; // Uploaded files from frontend
 
       if (!file || file.length === 0) {
         return res.status(400).json({ success: false, message: "No media uploaded" });
       }
   
-      let user = await User.findById(userId)
-      if (!user) {
-        return res.status(404).json({ success: false, message: "User not found"})
-      }
 
       // Upload file to Cloudinary
           const result = await uploadOnCloudinary(file.path, "auto");
@@ -60,8 +32,7 @@ export const createPost = async (req, res) => {
       // Create new post
       const post = await Post.create({
         user: userId,
->>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
-        userModel: user.role,
+        userModel: role,
         media: uploadedMedia,
         caption
       });
@@ -76,23 +47,8 @@ export const createPost = async (req, res) => {
 // Like/unlike post
 export const toggleLike = async (req, res) => {
   try {
-<<<<<<< HEAD
-    const post = await Post.findById(req.params.postId);
-    const user = req.user;
-    
-    const likeIndex = post.likes.findIndex(id => id.equals(user.id));
-    if (likeIndex === -1) {
-      post.likes.push(user.id);
-      post.likesModel = user.role;
-    } else {
-      post.likes.splice(likeIndex, 1);
-    }
-    
-    await post.save();
-    res.json({ success: true, likes: post.likes.length });
-=======
     const postId = req.params.postId;
-    const userId = req.user?.id;
+    const userId = req.user.id;
 
     if (!req.user) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
@@ -120,7 +76,6 @@ export const toggleLike = async (req, res) => {
     }
 
     res.status(200).json({ success: true, likes: post.likes.length });
->>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -129,7 +84,7 @@ export const toggleLike = async (req, res) => {
 // Add comment
 export const addComment = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId);
+    const post = await Post.findById(req.params.postId).populate('comments.user');
     const { text } = req.body;
 
     post.comments.push({
@@ -200,9 +155,6 @@ export const getFriendPosts = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
-<<<<<<< HEAD
-};
-=======
 };
 
 // delete post
@@ -242,4 +194,3 @@ export const getPostById = async(req,res)=>{
         console.log("Error in getOwnPosts controller",error.message)
     }
 }
->>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97

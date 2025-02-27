@@ -10,14 +10,14 @@ export const sendMessage = async (req, res) => {
       req.body;
 
     if (!senderId || !receiverId || !message) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
     // if sender is recruiter then no need to accept the invite
     if(senderType == "Recruiter"){
       const recruiter = await Recruiter.findById(senderId);  
       if (!recruiter) {
-        return res.status(404).json({ error: "Recruiter not found" });
+        return res.status(404).json({ message: "Recruiter not found" });
       }
       recruiter.invites.push(receiverId)
       await recruiter.save()
@@ -28,7 +28,7 @@ export const sendMessage = async (req, res) => {
       const recruiter = await Recruiter.findById(receiverId);
 
       if (!recruiter) {
-        return res.status(404).json({ error: "Recruiter not found" });
+        return res.status(404).json({ message: "Recruiter not found" });
       }
 
       // check if user is added to invites
@@ -43,7 +43,7 @@ export const sendMessage = async (req, res) => {
       if (previousMessages && !hasInvite) {
         return res
           .status(403)
-          .json({ error: "Recruiter has not accepted the invite yet" });
+          .json({ message: "Recruiter has not accepted the invite yet" });
       }
     }
 
@@ -66,7 +66,7 @@ export const sendMessage = async (req, res) => {
 
     res.status(201).json(newMessage);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 

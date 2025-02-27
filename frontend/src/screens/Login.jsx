@@ -1,68 +1,49 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import Icon from 'react-native-vector-icons/Feather';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { useNavigation } from '@react-navigation/native';
 
-const Register = () => {
+const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false)
-  
-  const { control, handleSubmit,reset, watch, formState: { errors } } = useForm();
+  const [isLoading, setIsLoading] = useState(false);
+  const navigation = useNavigation();
+
+  const { control, handleSubmit, formState: { errors } } = useForm();
 
   const onSubmit = async (data) => {
-    console.log({name:data.name,email:data.email,password:data.password})
+    console.log(data);
+    console.log({ email: data.email, password: data.password });
     setIsLoading(true);
-    
+
     try {
-      let response = await fetch('http://192.168.41.81:5000/api/v1/user/register', { // Use 127.0.0.1 for iOS
+      let response = await fetch('http://192.168.29.111:5000/api/v1/recruiter/login', { // Use 127.0.0.1 for iOS
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({name:data.name,email:data.email,password:data.password})
+        body: JSON.stringify({ email: data.email, password: data.password })
       });
-  
+
       let responseData = await response.json();
       console.log(responseData);
-      Alert.alert("Email Verification",responseData.message)
-      
-      
+
+      if (responseData.success) {
+        navigation.navigate('Home');
+      } else {
+        Alert.alert("Login Failed", responseData.message);
+      }
     } catch (error) {
       console.log("Error:", error.message);
+      Alert.alert("Error", "An error occurred during login");
     } finally {
       setIsLoading(false);
-      reset()
     }
   };
-  
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Register</Text>
-
-      {/* Name Field */}
-      <View style={styles.inputFields}>
-        <Text style={styles.inputText}>Enter your name</Text>
-        <View style={styles.passwordContainer}>
-          <Controller
-            control={control}
-            name="name"
-            rules={{ required: 'Name is required' }}
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                placeholder="Enter your name"
-                style={styles.input}
-                placeholderTextColor="gray"
-                onChangeText={onChange}
-                value={value}
-              />
-            )}
-          />
-        </View>
-        {errors.name && <Text style={styles.errorText}>{errors.name.message}</Text>}
-      </View>
+      <Text style={styles.text}>Login</Text>
 
       {/* Email Field */}
       <View style={styles.inputFields}>
@@ -125,70 +106,34 @@ const Register = () => {
         {errors.password && <Text style={styles.errorText}>{errors.password.message}</Text>}
       </View>
 
-      {/* Confirm Password Field */}
-      <View style={styles.inputFields}>
-        <Text style={styles.inputText}>Re-Enter your password</Text>
-        <View style={styles.passwordContainer}>
-          <Controller
-            control={control}
-            name="confirmPassword"
-            rules={{
-              required: 'Confirm password is required',
-              validate: value => value === watch('password') || 'Passwords do not match',
-            }}
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                placeholder="Confirm password"
-                style={styles.input}
-                placeholderTextColor="gray"
-                secureTextEntry={!showConfirmPassword}
-                onChangeText={onChange}
-                value={value}
-              />
-            )}
-          />
-          <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.icon}>
-            <Icon name={showConfirmPassword ? "eye-off" : "eye"} size={20} color="gray" />
-          </Pressable>
-        </View>
-        {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword.message}</Text>}
-      </View>
-
-      {/* Sign Up Button */}
+      {/* Login Button */}
       <View style={{ width: "100%", padding: 10 }}>
         <Pressable disabled={isLoading} style={styles.button} onPress={handleSubmit(onSubmit)}>
-          <Text style={styles.btnText}>{isLoading ? 'Sign in...': 'Sign Up'}</Text>
+          <Text style={styles.btnText}>{isLoading ? 'Logging in...' : 'Login'}</Text>
         </Pressable>
       </View>
 
-      {/* Sign In Link */}
+      {/* Forgot Password Link */}
       <View style={{ justifyContent: 'center', alignItems: 'center', marginTop: 10 }}>
         <Text style={{ color: "gray", fontWeight: '400' }}>
-          Already have an account? <Text style={{ fontWeight: 'bold', color: 'black' }}>Sign in</Text>
+          Forgot password? <Text style={{ fontWeight: 'bold', color: 'black' }}>Reset</Text>
         </Text>
         <Text style={{ fontWeight: 'bold', color: 'gray', marginTop: 5 }}>or</Text>
       </View>
 
-      {/* Google Login Button */}
-      <View style={[styles.inputFields, { marginTop: 10 }]}>
-        <Pressable style={[styles.socialButton]}>
-          <FontAwesome name="google" size={20} color="black" style={styles.socialIcon} />
-          <Text style={styles.socialText}>Continue with Google</Text>
-        </Pressable>
-      </View>
-
-      {/* Apple Login Button */}
-      <View style={styles.inputFields}>
-        <Pressable style={[styles.socialButton]}>
-          <FontAwesome name="apple" size={24} color="black" style={styles.socialIcon} />
-          <Text style={styles.socialText}>Continue with Apple</Text>
-        </Pressable>
+      {/* Sign Up Link */}
+      <View style={{ justifyContent: 'center', alignItems: 'center', marginTop: 10 }}>
+        <Text style={{ color: "gray", fontWeight: '400' }}>
+          Don't have an account? <Text style={{ fontWeight: 'bold', color: 'black' }}
+          onPress={() => navigation.navigate('Register')}
+          >Sign Up</Text>
+        </Text>
       </View>
     </View>
   );
 };
 
-export default Register;
+export default Login;
 
 const styles = StyleSheet.create({
   container: {
@@ -196,7 +141,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: "#fff",
     paddingHorizontal: 20,
-    paddingVertical:10
+    paddingVertical: 10
   },
   text: {
     fontSize: 28,
@@ -244,26 +189,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 16,
   },
-  socialButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 14,
-    height: 45,
-    width: "100%",
-  },
-  socialIcon: {
-    marginRight: 10,
-  },
-  socialText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
   errorText: {
     color: "red",
     fontSize: 12,
-    // marginTop: 2,
   },
 });

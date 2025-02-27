@@ -16,11 +16,7 @@ const isLoggedIn = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "Invalid token" });
     }
 
-<<<<<<< HEAD
-    // Attach user details to `req.user`
-=======
     // Attach user details to req.user
->>>>>>> c4a33076ffea3ea32ee7263582d0720d45db6b97
     req.user = {
       id: decoded.id,
       role: decoded.role,
