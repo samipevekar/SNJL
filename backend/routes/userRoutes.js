@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getUser, loginUser, logoutUser , registerUser, verifyUser, userLoginWithGoogle } from "../controllers/userController.js";
+import { forgotPassword, getUser, loginUser, logoutUser , registerUser, resetPassword, userLoginWithGoogle, verifyResetPasswordCode, verifyUser } from "../controllers/userController.js";
 import { isLoggedIn } from "../middlewares/employerAuthMiddleware.js";
 
 const userRoutes = Router();
@@ -21,5 +21,9 @@ userRoutes.get("/", isLoggedIn, getUser);
 
 // google authentication
 userRoutes.post('/google', userLoginWithGoogle)
+
+userRoutes.post("/forgot-password", forgotPassword);
+userRoutes.post("/verify-reset-code", verifyResetPasswordCode);
+userRoutes.post("/reset-password", resetPassword);
 
 export default userRoutes;

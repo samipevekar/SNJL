@@ -1,47 +1,116 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import {
-  loginRecruiter,
-  recruiterLoginWithGoogle,
-  registerRecruiter,
-  verifyRecruiter,
-} from "../api/recruiterAuthAPi.js";
+import axiosInstance from "../../components/Helpers/axiosinstance.js";
+import { storeToken } from "../../storage/AuthStorage.js";
 
 const initialState = {
   registerStatus: "idle",
   verifyStatus: "idle",
   loginStatus: "idle",
-  googleLoginStatus: "idle"
+  googleLoginStatus: "idle",
 };
 
+// register recruiter api
 export const registerRecruiterAsync = createAsyncThunk(
-  "user/registerRecruiter",
-  async ({ data, navigation, reset }) => {
-    const response = await registerRecruiter(data, navigation, reset);
-    return response;
+  "auth/registerRecruiter",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/v1/recruiter/register", {
+        name: credentials.name,
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      const responseData = response.data;
+
+      if (!responseData.success) {
+        return rejectWithValue(responseData.message || "Registration failed");
+      }
+
+      return responseData;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Network error. Please try again."
+      );
+    }
   }
 );
 
+// verify recruiter api
 export const verifyRecruiterAsync = createAsyncThunk(
-  "user/verifyRecruiter",
-  async ({ email, code, reset, navigation }) => {
-    const response = await verifyRecruiter(email, code, reset, navigation);
-    return response;
+  "auth/verifyRecruiter",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/v1/recruiter/verify", {
+        email: credentials.email,
+        code: credentials.code,
+      });
+
+      const responseData = response.data;
+
+      if (!responseData.success) {
+        return rejectWithValue(responseData.message || "Verification failed");
+      }
+
+      // Store token after successful verification
+      if (responseData.token) {
+        await storeToken(responseData.token);
+      }
+
+      return responseData;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Verification error. Please try again."
+      );
+    }
   }
 );
 
+// login recruiter api
 export const loginRecruiterAsync = createAsyncThunk(
-  "user/loginRecruiter",
-  async ({ data, navigation, reset }) => {
-    const response = await loginRecruiter(data, navigation, reset);
-    return response;
+  "auth/loginRecruiter",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/v1/recruiter/login", {
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      const responseData = response.data;
+
+      if (!responseData.success || !responseData.token) {
+        return rejectWithValue(responseData.message || "Login failed");
+      }
+
+      await storeToken(responseData.token);
+      return responseData;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Network error");
+    }
   }
 );
 
+// login with google api
 export const recruiterLoginWithGoogleAsync = createAsyncThunk(
   "user/recruiterLoginWithGoogle",
-  async ({ data, navigation }) => {
-    const response = await recruiterLoginWithGoogle(data, navigation);
-    return response;
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/v1/recruiter/google", {
+        email: credentials.email,
+        name: credentials.name,
+        googleId: credentials.id,
+      });
+
+      const responseData = response.data;
+
+      if (!responseData.success || !responseData.token) {
+        return rejectWithValue(responseData.message || "Login failed");
+      }
+
+      await storeToken(responseData.token);
+      return responseData;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Network error");
+    }
   }
 );
 

@@ -2,10 +2,17 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import Firebase // Add Firebase import
+import GoogleSignIn // Add Google Sign-In import
 
 @main
 class AppDelegate: RCTAppDelegate {
+
   override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+    // Initialize Firebase
+    FirebaseApp.configure()
+
+    // Set up React Native module name and dependencies
     self.moduleName = "frontend"
     self.dependencyProvider = RCTAppDependencyProvider()
 
@@ -14,6 +21,11 @@ class AppDelegate: RCTAppDelegate {
     self.initialProps = [:]
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // Handle Google Sign-In URL
+  override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    return GIDSignIn.sharedInstance.handle(url)
   }
 
   override func sourceURL(for bridge: RCTBridge) -> URL? {

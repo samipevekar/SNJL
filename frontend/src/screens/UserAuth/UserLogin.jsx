@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import Icon from "react-native-vector-icons/Ionicons";
-import { useNavigation } from "@react-navigation/native";
+import { CommonActions, useNavigation } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import {
   loginUserAsync,
@@ -38,7 +38,21 @@ const UserLogin = () => {
   } = useForm();
 
   const onSubmit = async (data) => {
-    dispatch(loginUserAsync({ data, navigation, reset }));
+    try {
+      const result = await dispatch(loginUserAsync(data)).unwrap();
+      if (result.success) {
+        reset();
+      }
+      // Navigation after successful login
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Home" }],
+        })
+      );
+    } catch (error) {
+      Alert.alert("Error", error);
+    }
   };
 
   useEffect(() => {
@@ -53,9 +67,27 @@ const UserLogin = () => {
 
       const userInfo = await GoogleSignin.signIn();
 
-      dispatch(
-        userLoginWithGoogleAsync({ data: userInfo.data.user, navigation })
-      );
+      try {
+        const result = await dispatch(
+          userLoginWithGoogleAsync({
+            email: userInfo.data.user.email,
+            name: userInfo.data.user.name,
+            googleId: userInfo.data.user.id,
+          })
+        ).unwrap();
+
+        if (result.success) {
+          // Navigation after successful login
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: "Home" }],
+            })
+          );
+        }
+      } catch (error) {
+        console.log(error);
+      }
       console.log(userInfo.data.user);
     } catch (error) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
@@ -164,7 +196,8 @@ const UserLogin = () => {
             disabled={loading == "loading"}
             style={({ pressed }) => [
               styles.button,
-              { transform: [{ scale: pressed ? 0.9 : 1 }] },loading=='loading' && {opacity:0.5} // Scale effect
+              { transform: [{ scale: pressed ? 0.9 : 1 }] },
+              loading == "loading" && { opacity: 0.5 }, // Scale effect
             ]}
             onPress={handleSubmit(onSubmit)}
           >

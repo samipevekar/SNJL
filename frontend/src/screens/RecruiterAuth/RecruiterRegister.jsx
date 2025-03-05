@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -37,8 +38,29 @@ const RecruiterRegister = () => {
     formState: { errors },
   } = useForm();
 
-  const onSubmit = async (data) => {
-    dispatch(registerRecruiterAsync({ data, navigation, reset }));
+  const onSubmit = async (formData) => {
+    try {
+      const result = await dispatch(
+        registerRecruiterAsync({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        })
+      ).unwrap();
+
+      // Show success alert with verification message
+      if (result.success) {
+        Alert.alert("Email Verification", result.message);
+        navigation.navigate("RecruiterVerify", {
+          email: formData.email,
+          name: formData.name,
+          password: formData.password,
+        });
+        reset();
+      }
+    } catch (error) {
+      Alert.alert("Registration Failed", error);
+    }
   };
 
   useEffect(() => {
@@ -53,10 +75,27 @@ const RecruiterRegister = () => {
 
       const userInfo = await GoogleSignin.signIn();
 
-      dispatch(
-        recruiterLoginWithGoogleAsync({ data: userInfo.data.user, navigation })
-      );
-      console.log(userInfo.data.user);
+      try {
+        const result = await dispatch(
+          recruiterLoginWithGoogleAsync({
+            email: userInfo.data.user.email,
+            name: userInfo.data.user.name,
+            googleId: userInfo.data.user.id,
+          })
+        ).unwrap();
+
+        if (result.success) {
+          // Navigation after successful login
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: "Home" }],
+            })
+          );
+        }
+      } catch (error) {
+        console.log(error);
+      }
     } catch (error) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         console.log("User cancelled the sign-in process");
@@ -213,7 +252,8 @@ const RecruiterRegister = () => {
           disabled={loading === "loading"}
           style={({ pressed }) => [
             styles.button,
-            { transform: [{ scale: pressed ? 0.9 : 1 }], marginTop: 5 },loading=='loading' && {opacity:0.5} // Scale effect
+            { transform: [{ scale: pressed ? 0.9 : 1 }], marginTop: 5 },
+            loading == "loading" && { opacity: 0.5 }, // Scale effect
           ]}
           onPress={handleSubmit(onSubmit)}
         >

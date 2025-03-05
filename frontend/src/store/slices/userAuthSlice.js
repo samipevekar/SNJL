@@ -1,42 +1,116 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { loginUser, registerUser, userLoginWithGoogle, verifyUser } from "../api/userAuthAPi.js";
+import axiosInstance from "../../components/Helpers/axiosinstance.js";
+import { storeToken } from "../../storage/AuthStorage.js";
 
 const initialState = {
   registerStatus: "idle",
   verifyStatus: "idle",
   loginStatus: "idle",
-  googleLoginStatus: "idle"
+  googleLoginStatus: "idle",
 };
 
+// register user api
 export const registerUserAsync = createAsyncThunk(
   "user/registerUser",
-  async ({ data, navigation, reset }) => {
-    const response = await registerUser(data, navigation, reset);
-    return response;
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/v1/user/register", {
+        name: credentials.name,
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      const responseData = response.data;
+
+      if (!responseData.success) {
+        return rejectWithValue(responseData?.message || "Registration failed");
+      }
+
+      return responseData;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Network erorr. Please try again"
+      );
+    }
   }
 );
 
+// verify user api
 export const verifyUserAsync = createAsyncThunk(
   "user/verifyUser",
-  async ({ email, code, reset, navigation }) => {
-    const response = await verifyUser(email, code, reset, navigation);
-    return response;
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/v1/user/verify", {
+        email: credentials.email,
+        code: credentials.code,
+      });
+
+      const responseData = response.data;
+
+      if (!responseData.success) {
+        return rejectWithValue(responseData.message || "Verification failed");
+      }
+
+      if (responseData.token) {
+        await storeToken(responseData.token);
+      }
+
+      return responseData;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Verification error. Please try again."
+      );
+    }
   }
 );
 
+// login user api
 export const loginUserAsync = createAsyncThunk(
   "user/loginUser",
-  async ({ data, navigation, reset }) => {
-    const response = await loginUser(data, navigation, reset);
-    return response;
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/v1/user/login", {
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      const responseData = response.data;
+
+      if (!responseData.success || !responseData.token) {
+        return rejectWithValue(responseData.message || "Login failed");
+      }
+
+      await storeToken(responseData.token);
+      return responseData;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Network error");
+    }
   }
 );
 
+
+// login with google api
 export const userLoginWithGoogleAsync = createAsyncThunk(
   "user/userLoginWithGoogle",
-  async ({ data, navigation }) => {
-    const response = await userLoginWithGoogle(data, navigation);
-    return response;
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/v1/user/google", {
+        email: credentials.email,
+        name: credentials.name,
+        googleId: credentials.id,
+      });
+
+      const responseData = response.data;
+
+      if (!responseData.success || !responseData.token) {
+        return rejectWithValue(responseData?.message || "Login failed");
+      }
+
+      await storeToken(responseData.token);
+      return responseData;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Network error");
+    }
   }
 );
 
@@ -81,13 +155,15 @@ export const userAuthSlice = createSlice({
       })
       .addCase(userLoginWithGoogleAsync.rejected, (state) => {
         state.googleLoginStatus = "idle";
-      })
+      });
   },
 });
 
-export const selectUserRegisterStatus = (state) => state.userAuth.registerStatus;
+export const selectUserRegisterStatus = (state) =>
+  state.userAuth.registerStatus;
 export const selectUserLoginStatus = (state) => state.userAuth.loginStatus;
 export const selectUserVerifyStatus = (state) => state.userAuth.verifyStatus;
-export const selectUserGoogleStatus = (state) => state.userAuth.googleLoginStatus;
+export const selectUserGoogleStatus = (state) =>
+  state.userAuth.googleLoginStatus;
 
 export default userAuthSlice.reducer;

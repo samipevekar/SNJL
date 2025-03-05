@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import Icon from "react-native-vector-icons/Ionicons";
-import { useNavigation } from "@react-navigation/native";
+import { CommonActions, useNavigation } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import {
@@ -36,8 +36,31 @@ const RecruiterLogin = () => {
     formState: { errors },
   } = useForm();
 
-  const onSubmit = async (data) => {
-    dispatch(loginRecruiterAsync({ data, navigation, reset }));
+  const onSubmit = async (formData) => {
+    try {
+      const result = await dispatch(
+        loginRecruiterAsync({
+          email: formData.email,
+          password: formData.password,
+        })
+      ).unwrap();
+
+      console.log(result);
+
+      if (result.success) {
+        reset();
+      }
+
+      // Navigation after successful login
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Home" }],
+        })
+      );
+    } catch (error) {
+      Alert.alert("Error", error);
+    }
   };
 
   useEffect(() => {
@@ -52,9 +75,27 @@ const RecruiterLogin = () => {
 
       const userInfo = await GoogleSignin.signIn();
 
-      dispatch(
-        recruiterLoginWithGoogleAsync({ data: userInfo.data.user, navigation })
-      );
+      try {
+        const result = await dispatch(
+          recruiterLoginWithGoogleAsync({
+            email: userInfo.data.user.email,
+            name: userInfo.data.user.name,
+            googleId: userInfo.data.user.id,
+          })
+        ).unwrap();
+
+        if (result.success) {
+          // Navigation after successful login
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: "Home" }],
+            })
+          );
+        }
+      } catch (error) {
+        console.log(error);
+      }
       console.log(userInfo.data.user);
     } catch (error) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
@@ -163,7 +204,8 @@ const RecruiterLogin = () => {
             disabled={loading == "loading"}
             style={({ pressed }) => [
               styles.button,
-              { transform: [{ scale: pressed ? 0.9 : 1 }]},loading=='loading' && {opacity:0.5}
+              { transform: [{ scale: pressed ? 0.9 : 1 }] },
+              loading == "loading" && { opacity: 0.5 },
             ]}
             onPress={handleSubmit(onSubmit)}
           >

@@ -14,10 +14,10 @@ import Arrow from "react-native-vector-icons/AntDesign";
 import {
   registerRecruiterAsync,
   selectRecruiterRegisterStatus,
-  selectRecruiterStatus,
   selectRecruiterVerifyStatus,
   verifyRecruiterAsync,
 } from "../../store/slices/recruiterAuthSlice";
+import { CommonActions } from "@react-navigation/native";
 
 const RecruiterVerify = ({ navigation, route }) => {
   const { control, handleSubmit, watch, reset } = useForm({
@@ -27,70 +27,86 @@ const RecruiterVerify = ({ navigation, route }) => {
   const otpValues = watch("otp");
 
   const [timer, setTimer] = useState(30);
-    const [showTimer, setShowTimer] = useState(false);
-    const intervalRef = useRef(null); // ✅ Interval ko track karne ke liye ref
+  const [showTimer, setShowTimer] = useState(false);
+  const intervalRef = useRef(null); // ✅ Interval ko track karne ke liye ref
 
   const dispatch = useDispatch();
 
   const loading = useSelector(selectRecruiterVerifyStatus);
-  const resendLoading = useSelector(selectRecruiterRegisterStatus)
+  const resendLoading = useSelector(selectRecruiterRegisterStatus);
 
   const onSubmit = async (data) => {
-    const otpCode = data.otp.join("");
+    try {
+      const otpCode = data.otp.join("");
+      const result = await dispatch(
+        verifyRecruiterAsync({
+          email: route.params.email,
+          code: otpCode,
+        })
+      ).unwrap();
 
-    dispatch(
-      verifyRecruiterAsync({
-        email: route.params.email,
-        code: otpCode,
-        reset,
-        navigation,
-      })
-    );
+      if (result.success) {
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "Home" }],
+          })
+        );
+      }
+    } catch (error) {
+      Alert.alert("Error", error);
+    } finally {
+      reset();
+    }
   };
 
-  const handleResendOtp = () => {
-      dispatch(
+  const handleResendOtp = async () => {
+    try {
+      const result = await dispatch(
         registerRecruiterAsync({
-          data: {
-            name: route.params.name,
-            email: route.params.email,
-            password: route.params.password,
-          },
-          navigation,
-          reset,
+          name: route.params.name,
+          email: route.params.email,
+          password: route.params.password,
         })
-      );
-  
-      setShowTimer(true);
-      setTimer(30); //  Reset timer to 30
-  
-      // clear interval
+      ).unwrap();
+
+      if (result.success) {
+        Alert.alert("Email Verification", result.message);
+      }
+    } catch (error) {
+      Alert.alert("Error sending code", error);
+    }
+
+    setShowTimer(true);
+    setTimer(30); //  Reset timer to 30
+
+    // clear interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    // starting new interval
+    intervalRef.current = setInterval(() => {
+      setTimer((prevTimer) => {
+        if (prevTimer <= 1) {
+          clearInterval(intervalRef.current);
+          setShowTimer(false); // Timer khatam hone par hide kar do
+          return 0;
+        }
+        return prevTimer - 1;
+      });
+    }, 1000);
+  };
+
+  // ✅ Cleanup effect
+  useEffect(() => {
+    return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-  
-      // starting new interval
-      intervalRef.current = setInterval(() => {
-        setTimer((prevTimer) => {
-          if (prevTimer <= 1) {
-            clearInterval(intervalRef.current);
-            setShowTimer(false); // Timer khatam hone par hide kar do
-            return 0;
-          }
-          return prevTimer - 1;
-        });
-      }, 1000);
     };
+  }, []);
 
-    // ✅ Cleanup effect
-      useEffect(() => {
-        return () => {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-          }
-        };
-      }, []);
-      
   return (
     <View style={styles.container}>
       <View style={styles.verifyHeader}>
@@ -137,7 +153,7 @@ const RecruiterVerify = ({ navigation, route }) => {
         ))}
       </View>
       <TouchableOpacity
-        style={[styles.verifyButton,loading=='loading' && {opacity:0.5}]}
+        style={[styles.verifyButton, loading == "loading" && { opacity: 0.5 }]}
         onPress={handleSubmit(onSubmit)}
       >
         <Text disabled={loading == "loading"} style={styles.verifyText}>
@@ -146,18 +162,18 @@ const RecruiterVerify = ({ navigation, route }) => {
       </TouchableOpacity>
 
       <Pressable style={styles.resend}>
-              <Text
-                style={[
-                  styles.resendBtn,
-                  (timer > 0 && timer < 30) && { opacity: 0.4 },
-                ]}
-                disabled={timer > 0 && timer < 30}
-                onPress={handleResendOtp}
-              >
-                {resendLoading === "loading" ? "Sending OTP..." : "Resend OTP"}
-              </Text>
-              {showTimer && <Text style={{ color: "gray" }}>(00:{timer})</Text>}
-            </Pressable>
+        <Text
+          style={[
+            styles.resendBtn,
+            timer > 0 && timer < 30 && { opacity: 0.4 },
+          ]}
+          disabled={(timer > 0 && timer < 30) || resendLoading == "loading"}
+          onPress={handleResendOtp}
+        >
+          {resendLoading === "loading" ? "Sending OTP..." : "Resend OTP"}
+        </Text>
+        {showTimer && <Text style={{ color: "gray" }}>(00:{timer})</Text>}
+      </Pressable>
     </View>
   );
 };

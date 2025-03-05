@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Pressable,
+  Alert,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
@@ -16,6 +17,7 @@ import {
   verifyUserAsync,
 } from "../../store/slices/userAuthSlice";
 import Arrow from "react-native-vector-icons/AntDesign";
+import { CommonActions } from "@react-navigation/native";
 
 const Verify = ({ navigation, route }) => {
   const { control, handleSubmit, watch, reset } = useForm({
@@ -31,32 +33,50 @@ const Verify = ({ navigation, route }) => {
 
   const dispatch = useDispatch();
   const loading = useSelector(selectUserVerifyStatus);
-  const resendLoading = useSelector(selectUserRegisterStatus)
+  const resendLoading = useSelector(selectUserRegisterStatus);
 
   const onSubmit = async (data) => {
-    const otpCode = data.otp.join("");
-    dispatch(
-      verifyUserAsync({
-        email: route.params.email,
-        code: otpCode,
-        reset,
-        navigation,
-      })
-    );
+    try {
+      const otpCode = data.otp.join("");
+      const result = await dispatch(
+        verifyUserAsync({
+          email: route.params.email,
+          code: otpCode,
+        })
+      ).unwrap();
+
+      if (result.success) {
+        // Navigation after successful login
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "Home" }],
+          })
+        );
+      }
+    } catch (error) {
+      Alert.alert("Error", error);
+    } finally {
+      reset();
+    }
   };
 
-  const handleResendOtp = () => {
-    dispatch(
-      registerUserAsync({
-        data: {
+  const handleResendOtp = async () => {
+    try {
+      const result = await dispatch(
+        registerUserAsync({
           name: route.params.name,
           email: route.params.email,
           password: route.params.password,
-        },
-        navigation,
-        reset,
-      })
-    );
+        })
+      ).unwrap();
+
+      if (result.success) {
+        Alert.alert("Email Verification", result.message);
+      }
+    } catch (error) {
+      Alert.alert("Error sending code", error);
+    }
 
     setShowTimer(true);
     setTimer(30); //  Reset timer to 30
@@ -137,7 +157,10 @@ const Verify = ({ navigation, route }) => {
         style={styles.verifyButton}
         onPress={handleSubmit(onSubmit)}
       >
-        <Text disabled={loading == "loading"} style={[styles.verifyText,loading=='loading' && {opacity:0.5}]}>
+        <Text
+          disabled={loading == "loading"}
+          style={[styles.verifyText, loading == "loading" && { opacity: 0.5 }]}
+        >
           {loading == "loading" ? "Verifying..." : "Verify"}
         </Text>
       </TouchableOpacity>
@@ -146,9 +169,9 @@ const Verify = ({ navigation, route }) => {
         <Text
           style={[
             styles.resendBtn,
-            (timer > 0 && timer < 30) && { opacity: 0.4 },
+            timer > 0 && timer < 30 && { opacity: 0.4 },
           ]}
-          disabled={timer > 0 && timer < 30}
+          disabled={(timer > 0 && timer < 30) || resendLoading == "loading"}
           onPress={handleResendOtp}
         >
           {resendLoading === "loading" ? "Sending OTP..." : "Resend OTP"}

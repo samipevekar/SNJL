@@ -14,7 +14,8 @@ const generateVerificationCode = () => {
 const unverifiedUsers = new Map();
 
 export const registerRecruiter = async (req, res) => {
-  const { name, email, phone, password } = req.body;
+  const { name, email,  password ,} = req.body;
+  
 
   try {
     // Validate input
@@ -22,25 +23,27 @@ export const registerRecruiter = async (req, res) => {
       return res.status(400).json({ success: false, message: "Name and password are required" });
     }
 
-    if (!email && !phone) {
-      return res.status(400).json({ success: false, message: "Either email or phone number is required" });
+    if (!email) {
+      return res.status(400).json({ success: false, message: " email  is required" });
     }
 
     // Ensure email is provided before validation
     if (email && !validator.isEmail(email)) {
       return res.status(400).json({ success: false, message: "Invalid email" });
     }
-
+    
     // Ensure phone is provided before validation
-    if (phone && !validator.isMobilePhone(phone, "any", { strictMode: false })) {
-      return res.status(400).json({ success: false, message: "Invalid phone number" });
-    }
+   
 
+    
     if (password.length < 8) {
       return res.status(400).json({ success: false, message: "Password must be at least 8 characters long" });
     }
-
-    const existingUser = await Recruiter.findOne({ email });
+    
+    // Check if user already exists
+    const existingUser = await Recruiter.findOne({
+      $or: [{ email }],
+    });
     if (existingUser) {
       return res.status(400).json({ success: false, message: "User already exists" });
     }
@@ -51,7 +54,6 @@ export const registerRecruiter = async (req, res) => {
     unverifiedUsers.set(email, {
       name,
       email,
-      phone,
       password,
       verificationCode,
       verificationCodeExpires,
@@ -69,6 +71,7 @@ export const registerRecruiter = async (req, res) => {
 
 export const verifyEmail = async (req, res, next) => {
   const { email, code } = req.body;
+  // console.log(email,code)
 
   try {
     if (!email || !code) {
@@ -105,12 +108,14 @@ export const verifyEmail = async (req, res, next) => {
 
     res.status(201).json({ success: true, message: "User registered successfully", token, user: newUser });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error" });
-    console.log(error.message)
+    console.error("Error verifying phone:", error);
+    res.status(500).json({ success :false ,message: "Internal server error" });
   }
 };
 export const loginRecruiter = async (req, res) => {
   const { email, password } = req.body;
+  // console.log(email, password);
+  
 
   try {
     if (!email || !password) {
@@ -164,21 +169,21 @@ export const getRecruiter = async(req,res)=>{
 }
 
 // google authentication
-export const recruiterLoginWithGoogle = async(req,res)=>{
+export const recruiterLoginWithGoogle = async (req, res) => {
   const { email, googleId, name } = req.body;
 
   try {
     let user = await Recruiter.findOne({ email });
 
     if (user) {
+      // Agar user normal sign-up se bana tha, to Google ID update kar denge
       if (!user.isGoogleUser) {
-        return res.status(400).json({
-          success: false,
-          message: "This email is already registered. You can login with another email",
-        });
+        user.isGoogleUser = true;
+        user.googleId = googleId;
+        await user.save(); // Update user with Google details
       }
 
-      // User is already a Google user, so generate JWT token
+      // Generate JWT token
       const token = generateToken(user._id, user.role);
       return res.json({
         success: true,
@@ -188,7 +193,7 @@ export const recruiterLoginWithGoogle = async(req,res)=>{
       });
     }
 
-    // If no user exists, create a new Google user
+    // Agar user nahi mila, to naya Google user create karein
     user = new Recruiter({
       name,
       email,
@@ -198,7 +203,7 @@ export const recruiterLoginWithGoogle = async(req,res)=>{
 
     await user.save();
 
-    // Generate JWT token for new user
+    // Generate JWT token
     const token = generateToken(user._id, user.role);
 
     res.json({
@@ -208,7 +213,116 @@ export const recruiterLoginWithGoogle = async(req,res)=>{
       user,
     });
   } catch (error) {
-    console.error("Error in Google login:", error.message);
+    console.error("Error in Google login:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
-}
+};
+
+
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Validate input
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    // Check if the user exists
+    const user = await Recruiter.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Generate a 6-digit verification code
+    const verificationCode = generateVerificationCode();
+    const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Save the code and expiration time in the unverifiedUsers map
+    unverifiedUsers.set(email, {
+      email,
+      verificationCode,
+      verificationCodeExpires,
+    });
+
+    // Send the verification code via email
+    await sendVerificationEmail(email, verificationCode);
+
+    res.status(200).json({ success: true, message: "Verification code sent to your email" });
+  } catch (error) {
+    console.error("Error in forgotPassword:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+
+
+export const verifyResetPasswordCode = async (req, res) => {
+  const { email, code } = req.body;
+
+  try {
+    // Validate input
+    if (!email || !code) {
+      return res.status(400).json({ success: false, message: "Email and code are required" });
+    }
+
+    // Check if the user exists in the unverifiedUsers map
+    const userData = unverifiedUsers.get(email);
+    if (!userData) {
+      return res.status(404).json({ success: false, message: "User not found or verification code expired" });
+    }
+
+    // Check if the code matches
+    if (userData.verificationCode !== code) {
+      return res.status(400).json({ success: false, message: "Invalid verification code" });
+    }
+
+    // Check if the code has expired
+    if (userData.verificationCodeExpires < new Date()) {
+      unverifiedUsers.delete(email);
+      return res.status(400).json({ success: false, message: "Verification code expired" });
+    }
+
+    // If the code is valid, allow the user to reset their password
+    res.status(200).json({ success: true, message: "Verification code verified. You can now reset your password." });
+  } catch (error) {
+    console.error("Error in verifyResetPasswordCode:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+
+
+export const resetPassword = async (req, res) => {
+  const { email, newPassword, reEnterPassword } = req.body;
+
+  try {
+    // Validate input
+    if (!email || !newPassword || !reEnterPassword) {
+      return res.status(400).json({ success: false, message: "Email, new password, and re-entered password are required" });
+    }
+
+    // Check if the new passwords match
+    if (newPassword !== reEnterPassword) {
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+    }
+
+    // Check if the user exists
+    const user = await Recruiter.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Update the user's password
+    user.password = newPassword;
+    await user.save();
+
+    // Clear the user from the unverifiedUsers map
+    unverifiedUsers.delete(email);
+
+    res.status(200).json({ success: true, message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error in resetPassword:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};

@@ -10,7 +10,9 @@ export const sendFriendRequest = async (req, res) => {
     
     const senderId = req.user.id;// Get sender's id
     const receiverId = req.params.receiverId;// Get receiver's id
-    const { senderModel, receiverModel } = req.body;
+    const senderModel  = req.user.role;
+    console.log("senderModel",senderModel)
+    const {receiverModel } = req.body;
 
     // Prevent self-request
     if (senderId.toString() === receiverId.toString() && senderModel === receiverModel) {
@@ -221,7 +223,7 @@ export const getRecommendations = async (req, res) => {
           friends: { $in: friendsList } // Mutual friends
         }
       },
-      { $project: { name: 1, profileImage: 1 } }, // Select relevant fields
+      { $project: { name: 1, profileImage: 1,role:1 } }, // Select relevant fields
       { $skip: skip },
       { $limit: limit }
     ]);

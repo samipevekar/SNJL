@@ -195,21 +195,21 @@ export const getUser = async(req,res)=>{
 }
 
 // google authentication
-export const userLoginWithGoogle = async(req,res)=>{
+export const userLoginWithGoogle = async (req, res) => {
   const { email, googleId, name } = req.body;
 
   try {
     let user = await User.findOne({ email });
 
     if (user) {
+      // Agar user normal sign-up se bana tha, to Google ID update kar denge
       if (!user.isGoogleUser) {
-        return res.status(400).json({
-          success: false,
-          message: "This email is already registered. You can login with another email",
-        });
+        user.isGoogleUser = true;
+        user.googleId = googleId;
+        await user.save(); // Update user with Google details
       }
 
-      // User is already a Google user, so generate JWT token
+      // Generate JWT token
       const token = generateToken(user._id, user.role);
       return res.json({
         success: true,
@@ -219,7 +219,7 @@ export const userLoginWithGoogle = async(req,res)=>{
       });
     }
 
-    // If no user exists, create a new Google user
+    // Agar user nahi mila, to naya Google user create karein
     user = new User({
       name,
       email,
@@ -229,7 +229,7 @@ export const userLoginWithGoogle = async(req,res)=>{
 
     await user.save();
 
-    // Generate JWT token for new user
+    // Generate JWT token
     const token = generateToken(user._id, user.role);
 
     res.json({
@@ -242,4 +242,114 @@ export const userLoginWithGoogle = async(req,res)=>{
     console.error("Error in Google login:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
-}
+};
+
+
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Validate input
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    // Check if the user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Generate a 6-digit verification code
+    const verificationCode = generateVerificationCode();
+    const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Save the code and expiration time in the unverifiedUsers map
+    unverifiedWorkers.set(email, {
+      email,
+      verificationCode,
+      verificationCodeExpires,
+    });
+
+    // Send the verification code via email
+    await sendVerificationEmail(email, verificationCode);
+
+    res.status(200).json({ success: true, message: "Verification code sent to your email" });
+  } catch (error) {
+    console.error("Error in forgotPassword:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+
+
+export const verifyResetPasswordCode = async (req, res) => {
+  const { email, code } = req.body;
+
+  try {
+    // Validate input
+    if (!email || !code) {
+      return res.status(400).json({ success: false, message: "Email and code are required" });
+    }
+
+    // Check if the user exists in the unverifiedUsers map
+    const userData = unverifiedWorkers.get(email);
+    if (!userData) {
+      return res.status(404).json({ success: false, message: "User not found or verification code expired" });
+    }
+
+    // Check if the code matches
+    if (userData.verificationCode !== code) {
+      return res.status(400).json({ success: false, message: "Invalid verification code" });
+    }
+
+    // Check if the code has expired
+    if (userData.verificationCodeExpires < new Date()) {
+      unverifiedWorkers.delete(email);
+      return res.status(400).json({ success: false, message: "Verification code expired" });
+    }
+
+    // If the code is valid, allow the user to reset their password
+    res.status(200).json({ success: true, message: "Verification code verified. You can now reset your password." });
+  } catch (error) {
+    console.error("Error in verifyResetPasswordCode:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+
+
+
+export const resetPassword = async (req, res) => {
+  const { email, newPassword, reEnterPassword } = req.body;
+
+  try {
+    // Validate input
+    if (!email || !newPassword || !reEnterPassword) {
+      return res.status(400).json({ success: false, message: "Email, new password, and re-entered password are required" });
+    }
+
+    // Check if the new passwords match
+    if (newPassword !== reEnterPassword) {
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+    }
+
+    // Check if the user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Update the user's password
+    user.password = newPassword;
+    await user.save();
+
+    // Clear the user from the unverifiedUsers map
+    unverifiedWorkers.delete(email);
+
+    res.status(200).json({ success: true, message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error in resetPassword:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};

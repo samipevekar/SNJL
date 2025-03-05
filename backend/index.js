@@ -10,9 +10,9 @@ import recuiterRoutes from './routes/recruiterRoutes.js';
 import userRoutes from './routes/userRoutes.js'
 import chatRoutes from './routes/chatRoutes.js';
 import friendRoutes from './routes/friendRoutes.js';
+import postRoutes from './routes/postRoutes.js';
 import { initializeSocket } from './utils/socket.js';
 import ratingRoutes from './routes/ratingRoute.js'
-import postRoutes from './routes/postRoutes.js'
 import {app, server } from './socket/socket.js';
 
 config();
@@ -48,6 +48,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/friends',friendRoutes)
 app.use('/api/ratings', ratingRoutes);
 app.use('/api/posts', postRoutes);
+
 
 
 // Handle 404 routes

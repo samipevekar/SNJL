@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,7 +11,7 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import Icon from "react-native-vector-icons/Ionicons";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
-import { useNavigation } from "@react-navigation/native";
+import { CommonActions, useNavigation } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import {
   registerUserAsync,
@@ -38,7 +39,27 @@ const UserRegister = () => {
   } = useForm();
 
   const onSubmit = async (data) => {
-    dispatch(registerUserAsync({ data, navigation, reset }));
+    try {
+      const result = await dispatch(
+        registerUserAsync({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+        })
+      ).unwrap();
+
+      if (result.success) {
+        Alert.alert("Email Verification", result.message);
+        navigation.navigate("UserVerify", {
+          email: data.email,
+          name: data.name,
+          password: data.password,
+        });
+      }
+      reset();
+    } catch (error) {
+      Alert.alert("Registration Failed", error);
+    }
   };
 
   useEffect(() => {
@@ -53,9 +74,27 @@ const UserRegister = () => {
 
       const userInfo = await GoogleSignin.signIn();
 
-      dispatch(
-        userLoginWithGoogleAsync({ data: userInfo.data.user, navigation })
-      );
+      try {
+        const result = await dispatch(
+          userLoginWithGoogleAsync({
+            email: userInfo.data.user.email,
+            name: userInfo.data.user.name,
+            googleId: userInfo.data.user.id,
+          })
+        ).unwrap();
+
+        if (result.success) {
+          // Navigation after successful login
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: "Home" }],
+            })
+          );
+        }
+      } catch (error) {
+        console.log(error);
+      }
       console.log(userInfo.data.user);
     } catch (error) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
@@ -213,7 +252,8 @@ const UserRegister = () => {
           disabled={loading === "loading"}
           style={({ pressed }) => [
             styles.button,
-            { transform: [{ scale: pressed ? 0.9 : 1 }], marginTop: 5 },loading=='loading' && {opacity:0.5} // Scale effect
+            { transform: [{ scale: pressed ? 0.9 : 1 }], marginTop: 5 },
+            loading == "loading" && { opacity: 0.5 }, // Scale effect
           ]}
           onPress={handleSubmit(onSubmit)}
         >
