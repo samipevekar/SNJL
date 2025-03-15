@@ -20,13 +20,17 @@ const postSchema = new mongoose.Schema({
   }],
   caption: String,
   likes: [{
-    type: mongoose.Schema.Types.ObjectId,
-    refPath: 'likesModel'
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true
+    },
+    userModel: {
+      type: String,
+      enum: ['User', 'Recruiter'],
+      required: true
+    },_id: false
   }],
-  likesModel: {
-    type: String,
-    enum: ['User', 'Recruiter']
-  },
+  
   comments: [{
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -42,6 +46,7 @@ const postSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+ 
   createdAt: {
     type: Date,
     default: Date.now,

@@ -2,8 +2,12 @@ import { StyleSheet, Text, View, Button } from "react-native";
 import React, { useEffect, useState } from "react";
 import { getToken, removeToken } from "../storage/AuthStorage";
 import { useNavigation } from "@react-navigation/native";
+import { useSelector } from "react-redux";
+import { getUserData } from "../storage/userData";
 
 const Home = () => {
+  
+console.log("home" ,getUserData())
   const navigation = useNavigation();
 
   const handleLogout = async () => {
@@ -15,6 +19,7 @@ const Home = () => {
     <View style={styles.container}>
       <Text style={{ fontSize: 40, marginBottom: 20 }}>Welcome to Home</Text>
       <Button title="Logout" onPress={handleLogout} />
+      <Button title="Profile" onPress={() => navigation.navigate("UserProfile")} />
     </View>
   );
 };

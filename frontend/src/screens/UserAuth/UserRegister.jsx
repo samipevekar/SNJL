@@ -67,6 +67,7 @@ const UserRegister = () => {
   }, []);
 
   const googleLogin = async () => {
+    
     try {
       await GoogleSignin.hasPlayServices();
 
@@ -82,6 +83,7 @@ const UserRegister = () => {
             googleId: userInfo.data.user.id,
           })
         ).unwrap();
+        
 
         if (result.success) {
           // Navigation after successful login

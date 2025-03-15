@@ -1,12 +1,15 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../../components/Helpers/axiosinstance.js";
 import { storeToken } from "../../storage/AuthStorage.js";
+import { storeUserData } from "../../storage/userData.js";
 
 const initialState = {
   registerStatus: "idle",
   verifyStatus: "idle",
   loginStatus: "idle",
   googleLoginStatus: "idle",
+  user: {},
+  isLoggedIn: false,
 };
 
 // register user api
@@ -52,7 +55,9 @@ export const verifyUserAsync = createAsyncThunk(
       }
 
       if (responseData.token) {
+        console.log("tokem" ,responseData)
         await storeToken(responseData.token);
+        await storeUserData(responseData.worker);
       }
 
       return responseData;
@@ -69,6 +74,7 @@ export const loginUserAsync = createAsyncThunk(
   "user/loginUser",
   async (credentials, { rejectWithValue }) => {
     try {
+      console.log("cre",credentials);
       const response = await axiosInstance.post("/v1/user/login", {
         email: credentials.email,
         password: credentials.password,
@@ -79,8 +85,9 @@ export const loginUserAsync = createAsyncThunk(
       if (!responseData.success || !responseData.token) {
         return rejectWithValue(responseData.message || "Login failed");
       }
-
+      console.log("tokem" ,responseData)
       await storeToken(responseData.token);
+      await storeUserData(responseData.worker);
       return responseData;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Network error");
@@ -132,8 +139,10 @@ export const userAuthSlice = createSlice({
       .addCase(verifyUserAsync.pending, (state) => {
         state.verifyStatus = "loading";
       })
-      .addCase(verifyUserAsync.fulfilled, (state) => {
+      .addCase(verifyUserAsync.fulfilled, (state,action) => {
         state.verifyStatus = "idle";
+        state.isLoggedIn = true;
+        state.user = action.payload.worker || {};
       })
       .addCase(verifyUserAsync.rejected, (state) => {
         state.verifyStatus = "idle";
@@ -141,8 +150,10 @@ export const userAuthSlice = createSlice({
       .addCase(loginUserAsync.pending, (state) => {
         state.loginStatus = "loading";
       })
-      .addCase(loginUserAsync.fulfilled, (state) => {
+      .addCase(loginUserAsync.fulfilled, (state,action )=> {
         state.loginStatus = "idle";
+        state.isLoggedIn = true;
+        state.user = action.payload.worker || {};
       })
       .addCase(loginUserAsync.rejected, (state) => {
         state.loginStatus = "idle";

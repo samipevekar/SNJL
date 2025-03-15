@@ -7,6 +7,8 @@ import UserLogin from "../screens/UserAuth/UserLogin";
 import RecruiterRegister from "../screens/RecruiterAuth/RecruiterRegister";
 import RecruiterLogin from "../screens/RecruiterAuth/RecruiterLogin";
 import RecruiterVerify from "../screens/RecruiterAuth/RecruiterVerify";
+import UserProfile from "../screens/UserAuth/UserProfile";
+import EditProfile from "../screens/UserAuth/EditProfile";
 
 const Stack = createStackNavigator();
 
@@ -24,6 +26,8 @@ const StackNavigation = () => {
       <Stack.Screen name="RecruiterVerify" component={RecruiterVerify} />
       <Stack.Screen name="Home" component={Home} options={{animation:'fade'}} />
       <Stack.Screen name="AuthCheck" component={AuthCheck} />
+      <Stack.Screen name="UserProfile" component={UserProfile} />
+      <Stack.Screen name="EditProfile" component={EditProfile} />
     </Stack.Navigator>
   );
 };

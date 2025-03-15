@@ -11,7 +11,6 @@ export const sendFriendRequest = async (req, res) => {
     const senderId = req.user.id;// Get sender's id
     const receiverId = req.params.receiverId;// Get receiver's id
     const senderModel  = req.user.role;
-    console.log("senderModel",senderModel)
     const {receiverModel } = req.body;
 
     // Prevent self-request
@@ -149,40 +148,33 @@ export const getFriendRequests = async (req, res) => {
     const userId = req.user.id;
     const userModelType = req.user.role;
 
-    const requests = await FriendRequest.find({
-      $or: [
-        { receiver: userId, receiverModel: userModelType },
-        { sender: userId, senderModel: userModelType }
-      ]
+    // Get only incoming requests where user is the receiver
+    const incomingRequests = await FriendRequest.find({
+      receiver: userId,
+      receiverModel: userModelType,
+      status: "pending" // Only show pending requests
     })
     .populate({
       path: 'sender',
       select: 'name profileImage',
-      model: userModelType === 'User' ? User : Recruiter // ✅ Fix model selection
-    })
-    .populate({
-      path: 'receiver',
-      select: 'name profileImage',
-      model: userModelType === 'User' ? User : Recruiter // ✅ Fix model selection
+      // Use dynamic model based on senderModel stored in request
+      model: (doc) => doc.senderModel === 'User' ? User : Recruiter
     })
     .sort({ createdAt: -1 })
     .lean();
 
-    // Manual filtering to avoid Mongoose document issues
-    const incoming = requests.filter(r => 
-      r.receiver._id.toString() === userId.toString() &&
-      r.receiverModel === userModelType
-    );
-
-    const outgoing = requests.filter(r => 
-      r.sender._id.toString() === userId.toString() &&
-      r.senderModel === userModelType
-    );
-
     res.json({ 
       success: true,
-      incoming,
-      outgoing
+      requests: incomingRequests.map(request => ({
+        _id: request._id,
+        sender: {
+          _id: request.sender._id,
+          name: request.sender.name,
+          profileImage: request.sender.profileImage,
+          modelType: request.senderModel // Add sender's model type
+        },
+        createdAt: request.createdAt
+      }))
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -350,3 +342,5 @@ export const getFriendList = async (req, res) => {
     });
   }
 };
+
+

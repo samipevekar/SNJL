@@ -3,6 +3,7 @@ import User from "../models/userModel.js"; // Update this path based on your pro
 
 const isLoggedIn = async (req, res, next) => {
   try {
+    
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("token ")) {
@@ -10,6 +11,7 @@ const isLoggedIn = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1]; // Extract the token
+    // console.log(token)
     const decoded = jwt.verify(token, process.env.JWT_SECRET); // Verify token
 
     if (!decoded || !decoded.id) {

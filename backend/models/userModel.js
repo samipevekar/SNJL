@@ -8,6 +8,11 @@ const userSchema = new mongoose.Schema({
     required: [true, "Please provide your name"],
     trim:true
   },
+  username:{
+    type:String,
+    unique:true,
+    trim:true
+  },
   email: {
     type: String,
     unique: true,
@@ -45,7 +50,16 @@ const userSchema = new mongoose.Schema({
       friendId: { type: mongoose.Schema.Types.ObjectId, required: true },
       friendModel: { type: String, enum: ["User", "Recruiter"], required: true }
     }
-  ],
+  ], 
+ profileViewCount: [{
+    type: mongoose.Schema.Types.ObjectId,
+    refPath: 'profileViewCountModel'
+  }],
+  profileViewCountModel: {
+    type: String,
+    enum: ['User', 'Recruiter'],
+    default: 'User'
+  },
   googleId: {
     type: String, // Store Google user ID
     unique: true,
@@ -65,6 +79,16 @@ const userSchema = new mongoose.Schema({
   verificationCodeExpires: {
     type: Date,
   },
+  savedPosts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post'
+  }],
+  bio: {
+  type: String,
+  maxlength: [100, "Bio must be less than 100 characters"],
+  minlength: [10, "Bio must be at least 10 characters"],
+  trim: true
+}
 });
 
 // Hash password before saving

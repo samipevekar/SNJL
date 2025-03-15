@@ -39,6 +39,7 @@ const UserLogin = () => {
 
   const onSubmit = async (data) => {
     try {
+      console.log(data);
       const result = await dispatch(loginUserAsync(data)).unwrap();
       if (result.success) {
         reset();
