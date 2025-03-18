@@ -4,6 +4,8 @@ import { getToken, removeToken } from "../storage/AuthStorage";
 import { useNavigation } from "@react-navigation/native";
 import { useSelector } from "react-redux";
 import { getUserData } from "../storage/userData";
+import PostReviewTab from "../components/PostReviewTab";
+
 
 const Home = () => {
   
@@ -20,6 +22,11 @@ console.log("home" ,getUserData())
       <Text style={{ fontSize: 40, marginBottom: 20 }}>Welcome to Home</Text>
       <Button title="Logout" onPress={handleLogout} />
       <Button title="Profile" onPress={() => navigation.navigate("UserProfile")} />
+      <Button title="ChatScreen" onPress={() => navigation.navigate("ChatScreen")} />
+      <Button title="RandomUser" onPress={() => navigation.navigate("RandomUser")} />
+  
+     
+      
     </View>
   );
 };

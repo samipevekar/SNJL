@@ -38,6 +38,8 @@ const PostList = ({ posts, theme, user }) => {
 
   
   const handleToggleLike = (postId, currentLikes, isLiked) => {
+
+    console.log("dvbdvLikkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk")
     console.log("currentLikes",currentLikes)
     console.log("istuehai",isLiked)
     if (!userId) {

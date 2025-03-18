@@ -21,6 +21,7 @@ import ReviewItem from "../../components/ReviewItem";
 import MockUserProfile from "../../components/MockUserProfile";
 import { getUserData } from "../../storage/userData";
 import { fetchSavedPosts, fetchUserPosts } from "../../store/slices/postSlice";
+import PostReviewTab from "../../components/PostReviewTab";
 
 const { width, height } = Dimensions.get("window");
 
@@ -52,24 +53,6 @@ export default function UserProfile({ navigation }) {
       ? userData.profileImage
       : null;
 
-      
-  // const userData = {
-  //   name: "Sakasham Jaiswal",
-  //   username: "@sakashamjaiswal",
-  //   profileViews: "21.1k",
-  //   following: "32.4k",
-  //   followers: "320.4k",
-  //   career: "Career",
-  //   location: "Location",
-  //   joiningDate: "Joining Date",
-  //   bio: "First, I need to explain what `marginHorizontal` does. From what I remember, `marginHorizontal` is a shorthand property that sets the left and right margins of a component. ",
-  //   avatar:"https://tse1.mm.bing.net/th/id/OET.7252da000e8341b2ba1fb61c275c1f30?w=594&h=594&c=7&rs=1&o=5&pid=1.9"
-  // };
-
-  
-  
-
-  
 
   const handleTabChange = (tab) => {
     Animated.timing(tabAnim, {
@@ -468,6 +451,7 @@ export default function UserProfile({ navigation }) {
       >
         <Icon name="add" size={30 * scale} color="#fff" />
       </TouchableOpacity>
+      
     </View>
   );
 }
@@ -686,10 +670,14 @@ const styles = StyleSheet.create({
   tabContentWrapper: {
     flexDirection: "row",
     width: width * 2,
+   
   },
   tabContent: {
+    
     width: width,
-    paddingHorizontal: CONTENT_MARGIN, // Consistent margin for responsiveness
+    paddingHorizontal: CONTENT_MARGIN,
+    
+    // minHeight: height * 0.5, // Consistent margin for responsiveness
   },
   postsContainer: {
     width: "100%",

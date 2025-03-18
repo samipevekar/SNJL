@@ -9,6 +9,9 @@ import RecruiterLogin from "../screens/RecruiterAuth/RecruiterLogin";
 import RecruiterVerify from "../screens/RecruiterAuth/RecruiterVerify";
 import UserProfile from "../screens/UserAuth/UserProfile";
 import EditProfile from "../screens/UserAuth/EditProfile";
+import ChatScreen from "../screens/ChatScreen";
+import PostReviewTab from "../components/PostReviewTab";
+import RandomUser from "../screens/RandomUser";
 
 const Stack = createStackNavigator();
 
@@ -28,6 +31,9 @@ const StackNavigation = () => {
       <Stack.Screen name="AuthCheck" component={AuthCheck} />
       <Stack.Screen name="UserProfile" component={UserProfile} />
       <Stack.Screen name="EditProfile" component={EditProfile} />
+      <Stack.Screen name="ChatScreen" component={ChatScreen} />
+      <Stack.Screen name="RandomUser" component={RandomUser} />
+     
     </Stack.Navigator>
   );
 };

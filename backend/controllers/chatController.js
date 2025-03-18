@@ -9,6 +9,8 @@ export const sendMessage = async (req, res) => {
     const { senderId, senderType, receiverId, receiverType, message } =
       req.body;
 
+      console.log("senderId",senderId,"senderType",senderType,"receiverId",receiverId,"receiverType",receiverType,"message",message)
+
     if (!senderId || !receiverId || !message) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -60,6 +62,7 @@ export const sendMessage = async (req, res) => {
     await newMessage.save();
 
     const receiverSocketId = getReceiverSocketId(receiverId);
+    console.log("receiverSocketId",receiverSocketId)
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", newMessage);
     }

@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 // import ReviewItem from './ReviewItem';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import ReviewItem from './ReviewItem';
+import { getUserData } from '../storage/userData';
 
 const MockUserProfile = () => {
+  const [userData ,setUserData] = useState({});
+  const dispatch = useDispatch();
   const theme = useSelector((state) => state.theme.mode);
   // console.log("theme",theme)
   const mockReviews = [
@@ -35,25 +38,27 @@ const MockUserProfile = () => {
     },
   ];
 
-  const mockUserData = {
-    name: "Sakasham Jaiswal",
-    username: "@sakashamjaiswal",
-    profileViews: "21.1k",
-    following: "32.4k",
-    followers: "320.4k",
-    career: "Career",
-    location: "Location",
-    joiningDate: "Joining Date",
-    bio: "First, I need to explain what `marginHorizontal` does. From what I remember, `marginHorizontal` is a shorthand property that sets the left and right margins of a component. ",
-    avatar:"https://tse1.mm.bing.net/th/id/OET.7252da000e8341b2ba1fb61c275c1f30?w=594&h=594&c=7&rs=1&o=5&pid=1.9"
-  };
+
+    useEffect(() => {
+      const loadData = async () => {
+        try {
+          const user = await getUserData();
+          setUserData(user);
+          // console.log("usenvb",user)
+          
+        } catch (err) {
+          console.error("Error loading user data:", err);
+        }
+      };
+      loadData();
+    }, [dispatch]);
 
   const renderReviewItem = ({ item }) => (
     <>
     <ReviewItem
       review={item}
       theme={theme} // Matches the image (dark theme)
-      userData={mockUserData}
+      userData={userData}
     />
     <View style={{width:"100%",height:1, backgroundColor: theme === "light" ? "#000000" : "#FFFFFF", marginTop:5}}></View>
     </>

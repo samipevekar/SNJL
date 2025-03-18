@@ -14,6 +14,7 @@ import postRoutes from './routes/postRoutes.js';
 import { initializeSocket } from './utils/socket.js';
 import ratingRoutes from './routes/ratingRoute.js'
 import {app, server } from './socket/socket.js';
+import randomDataRoutes from './routes/randomDataRoutes.js';
 
 config();
 
@@ -48,6 +49,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/friends',friendRoutes)
 app.use('/api/ratings', ratingRoutes);
 app.use('/api/posts', postRoutes);
+app.use("/api/randomData",randomDataRoutes)
 
 
 

@@ -11,7 +11,7 @@ const activeSockets = new Map(); // Stores active connections: key = "model_id"
 export const initializeSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL,
+      origin: "*",
       methods: ['GET', 'POST'],
       credentials: true
     },
@@ -25,6 +25,7 @@ export const initializeSocket = (server) => {
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
+      // console.log("token",token)
       if (!token) throw new Error('Authentication required');
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
