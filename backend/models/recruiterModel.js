@@ -75,6 +75,10 @@ const recruiterSchema = new mongoose.Schema({
   verificationCodeExpires: {
     type: Date,
   },
+  unreadMessages: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'UnreadMessage'
+  }]
 });
 
 // Hash password before saving

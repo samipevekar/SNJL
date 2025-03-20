@@ -58,13 +58,13 @@ const userSchema = new mongoose.Schema({
     default: 'User'
   },
   googleId: {
-    type: String, 
+    type: String, // Store Google user ID
     unique: true,
-    sparse: true, 
+    sparse: true, // Allow normal users to have null Google ID
   },
   isGoogleUser: {
     type: Boolean,
-    default: false, 
+    default: false, // To differentiate Google users from normal users
   },
   isPhoneVerified: {
     type: Boolean,
@@ -101,7 +101,6 @@ userSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
-
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);

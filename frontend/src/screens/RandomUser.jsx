@@ -13,6 +13,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchRandomUsers } from "../store/slices/RandomDataSlice";
 import Icon from "react-native-vector-icons/MaterialIcons"; // For icons
 import Header from "../components/Header"; // Adjust the import path to your Header component
+import { theme } from "../theme/themes";
 
 const { width } = Dimensions.get("window"); // Get screen width for responsiveness
 
@@ -49,7 +50,7 @@ const RandomUserScreen = ({ navigation }) => {
       item?.profileImage && item?.profileImage.startsWith("https");
 
     return (
-      <View style={[styles.userCard ,{backgroundColor: theme === 'light' ? '#FFFFFF' : '#000000'}]}>
+      <View style={[styles.userCard ,{backgroundColor: theme === 'light' ? '#FFFFFF' : '#000000'},{borderBottomColor: theme === 'light' ? '#000000' : '#FFFFFF',}]}>
         <View style={[styles.userInfo]}>
           <View style={[styles.profileDetails]}>
             <View style={{ marginLeft: 10 }}>
@@ -71,7 +72,29 @@ const RandomUserScreen = ({ navigation }) => {
             </View>
 
             <View style={{ paddingTop: 5 }}>
+              <View style={{ flex:1,flexDirection:"row" ,alignItems:"center"}}>
               <Text style={[styles.name, { color: theme === 'light' ? '#000000' : '#FFFFFF' }]}>{item.name || "Unknown User"}</Text>
+              <View style={{width:8 ,height:8, borderRadius:4, backgroundColor:"#34A853", marginLeft:5}}></View>
+              
+              <View
+                style={[
+                  styles.viewCountContainer,
+                  { marginLeft: 10,  },
+                ]}
+              >
+                
+                <Text style={[styles.viewCount,{ color: theme === 'light' ? '#000000' : '#FFFFFF' }]}>
+                  {formatProfileViewCount(item?.profileViewCount?.length>0 ? item?.profileViewCount : 8)}
+                </Text>
+                <Icon
+                  name="visibility"
+                  size={width * 0.038}
+                  color={theme === 'light' ? '#000000' : '#FFFFFF' }
+                  style={styles.viewIcon}
+                />
+              </View>
+              
+              </View>
 
               <View style={styles.roleContainer}>
                 <Icon
@@ -125,22 +148,7 @@ const RandomUserScreen = ({ navigation }) => {
               </View>
             </View>
             <View>
-              <View
-                style={[
-                  styles.viewCountContainer,
-                  { marginRight: 20, marginTop: 5 },
-                ]}
-              >
-                <Icon
-                  name="visibility"
-                  size={width * 0.038}
-                  color={theme === 'light' ? '#000000' : '#FFFFFF' }
-                  style={styles.viewIcon}
-                />
-                <Text style={[styles.viewCount,{ color: theme === 'light' ? '#000000' : '#FFFFFF' }]}>
-                  {formatProfileViewCount(item.profileViewCount)}
-                </Text>
-              </View>
+              
             </View>
           </View>
         </View>
@@ -172,11 +180,11 @@ const RandomUserScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    // backgroundColor: "#f5f5f5",
   },
   list: {
-    paddingHorizontal: width * 0.03, // Responsive padding
-    paddingVertical: width * 0.02,
+    // paddingHorizontal: width * 0.03, // Responsive padding
+    // paddingVertical: width * 0.02,
   },
   userCard: {
     flexDirection: "row",
@@ -185,9 +193,9 @@ const styles = StyleSheet.create({
     paddingVertical: width * 0.04, // Responsive padding
     paddingHorizontal: width * 0.03,
     borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-    backgroundColor: "#fff",
-    marginBottom: width * 0.01,
+    
+    // backgroundColor: "#fff",
+    // marginBottom: width * 0.01,
   },
   userInfo: {
     width: "100%",
@@ -257,7 +265,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   viewIcon: {
-    marginRight: width * 0.01,
+    marginLeft: width * 0.01,
   },
   viewCount: {
     fontSize: width * 0.03,
@@ -268,7 +276,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   followButton: {
-    backgroundColor: "#fff", // White background
+    backgroundColor: "#FFFFFF", // White background
     borderWidth: 1,
     borderColor: "#34A853", // Green border
     paddingVertical: width * 0.015, // Responsive padding
@@ -282,13 +290,17 @@ const styles = StyleSheet.create({
     fontSize: width * 0.035,
   },
   viewProfileButton: {
-    backgroundColor: "#34A853", // Blue button
-    paddingVertical: width * 0.015,
+     // Blue button
+ backgroundColor: "#FFFFFF", // White background
+    borderWidth: 1,
+    borderColor: "#34A853", // Green border
+    paddingVertical: width * 0.015, // Responsive padding
     paddingHorizontal: width * 0.04,
     borderRadius: 5,
+    marginRight: width * 0.02,
   },
   viewProfileButtonText: {
-    color: "#fff",
+    color: "#34A853", // Green text
     fontWeight: "bold",
     fontSize: width * 0.035,
   },

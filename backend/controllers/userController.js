@@ -18,9 +18,7 @@ const generateVerificationCode = () => {
 // Register a new worker (without saving to the database)
 export const registerUser = async (req, res, next) => {
   const { name, email,phone,password,  } = req.body;
-
 console.log(req.body)
-
   try {
     // Validate input
     if (!name || !password) {
@@ -48,8 +46,6 @@ console.log(req.body)
     if (existingWorker) {
       return res.status(400).json({ message: "Worker already exists" });
     }
-    
-    console.log(req.body)
 
     // Generate a verification code
     const verificationCode = generateVerificationCode();
@@ -65,7 +61,6 @@ console.log(req.body)
       password,
       verificationCode,
       verificationCodeExpires,
-
     });
 
     await sendVerificationEmail(email, verificationCode);
@@ -108,7 +103,6 @@ export const verifyUser = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(workerData.password, salt);
 
-    // Create the worker in the database
    // Create the user in the database
 const newWorker = new User({
   name: workerData.name,
@@ -137,12 +131,9 @@ const newWorker = new User({
   }
 };
 
-
 // Login worker
 export const loginUser = async (req, res) => {
   const { email, phone, password } = req.body;
-
-  console.log(req.body)
 
   try {
     // Validate input

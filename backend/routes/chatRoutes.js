@@ -1,11 +1,14 @@
-import express from 'express'
-import { sendMessage, acceptInvite, getChatHistory, getChatUsers} from "../controllers/chatController.js"
+import express from 'express';
+import { sendMessage, markMessageAsSeen, typing, getChatHistory, sendInvitation, acceptInvitation } from '../controllers/chatController.js';
+import { isLoggedIn } from '../middlewares/employerAuthMiddleware.js';
 
 const chatRoutes = express.Router();
 
-chatRoutes.post("/send", sendMessage); // Send a message
-chatRoutes.post("/accept-invite", acceptInvite); // Recruiter accepts invite
-chatRoutes.get("/history/:senderId/:receiverId", getChatHistory); // Get chat history
-chatRoutes.get("/users/:userId", getChatUsers); // Get chat history
+chatRoutes.post('/send', isLoggedIn, sendMessage);
+chatRoutes.post('/mark-seen', isLoggedIn, markMessageAsSeen);
+chatRoutes.post('/typing', isLoggedIn, typing);
+chatRoutes.get('/history/:userId', isLoggedIn, getChatHistory);
+chatRoutes.post('/invite', isLoggedIn, sendInvitation);
+chatRoutes.post('/accept-invite', isLoggedIn, acceptInvitation);
 
 export default chatRoutes;

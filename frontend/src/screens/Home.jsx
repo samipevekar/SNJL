@@ -24,6 +24,7 @@ console.log("home" ,getUserData())
       <Button title="Profile" onPress={() => navigation.navigate("UserProfile")} />
       <Button title="ChatScreen" onPress={() => navigation.navigate("ChatScreen")} />
       <Button title="RandomUser" onPress={() => navigation.navigate("RandomUser")} />
+      <Button title="AllChatsScreen" onPress={() => navigation.navigate("AllChatsScreen")} />
   
      
       

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Text, Platform ,View, TextInput, TouchableOpacity, StyleSheet, ScrollView, StatusBar, Alert } from 'react-native';
+import { Text, Platform ,View, TextInput,Modal, TouchableOpacity, StyleSheet, ScrollView, StatusBar, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 const EditProfile = () => {
@@ -11,7 +12,7 @@ const EditProfile = () => {
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
-  const [gender, setGender] = useState('');
+ 
   const [bio, setBio] = useState('');
   const [qualification, setQualification] = useState('');
   const [college, setCollege] = useState('');
@@ -26,6 +27,7 @@ const EditProfile = () => {
   const [achievements, setAchievements] = useState('');
   const [birthYear, setBirthYear] = useState("");
   const [date, setDate] = useState(new Date());
+  const [gender, setGender] = useState("");
   const [showPicker, setShowPicker] = useState(false);
 
   const onChange = (event, selectedDate) => {
@@ -193,7 +195,7 @@ const EditProfile = () => {
             </View>
 
             <View style={styles.halfInput}>
-              <Text style={styles.inputLabel}>PIN CODE</Text>
+              <Text style={styles.inputLabel}>Pin CODE</Text>
               <TextInput
                 style={styles.input}
                 placeholder="Enter PIN Code"
@@ -235,16 +237,36 @@ const EditProfile = () => {
       )}
     </View>
 
-            <View style={styles.halfInput}>
-              <Text style={styles.inputLabel}>Gender</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Select Gender"
-                placeholderTextColor="#999"
-                value={gender}
-                onChangeText={setGender}
-              />
-            </View>
+    <View style={styles.halfInput}>
+      <Text style={styles.inputLabel}>Gender</Text>
+
+      {/* Touchable to Open Picker */}
+      <TouchableOpacity onPress={() => setShowPicker(true)} style={styles.input}>
+        <Text style={{ color: gender ? "#000" : "#999" }}>
+          {gender || "Select Gender"}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Modal for Picker */}
+      <Modal visible={showPicker} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={gender}
+              onValueChange={(itemValue) => {
+                setGender(itemValue);
+                setShowPicker(false); // Close modal after selection
+              }}
+            >
+              <Picker.Item label="Select Gender" value="" />
+              <Picker.Item label="Male" value="Male" />
+              <Picker.Item label="Female" value="Female" />
+              <Picker.Item label="Other" value="Other" />
+            </Picker>
+          </View>
+        </View>
+      </Modal>
+    </View>
           </View>
 
           {/* Bio */}

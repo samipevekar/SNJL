@@ -13,10 +13,12 @@ import friendRoutes from './routes/friendRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import { initializeSocket } from './utils/socket.js';
 import ratingRoutes from './routes/ratingRoute.js'
-import {app, server } from './socket/socket.js';
+// import {app, server } from './socket/socket.js';
 import randomDataRoutes from './routes/randomDataRoutes.js';
-
+import http  from 'http';
 config();
+const app = express();
+const server = http.createServer(app);
 
 const PORT = process.env.PORT || 5000;
 
