@@ -1,160 +1,372 @@
-import Recruiter from "../models/recruiterModel.js";
-import User from '../models/userModel.js'
-import Chat from "../models/chatModel.js";
-import { getReceiverSocketId, io } from "../socket/socket.js";
+import User from '../models/userModel.js';
+import Recruiter from '../models/recruiterModel.js';
+import Message from '../models/messageModel.js';
+import Invitation from '../models/invitationModel.js';
+import UnreadMessage from '../models/unreadMessageModel.js';
+import { activeSockets, getIO } from '../utils/socket.js';
+import mongoose from 'mongoose';
+
+// Helper function to get user details
+const getUserDetails = async (id, modelType) => {
+  const model = modelType === 'User' ? User : Recruiter;
+  const user = await model.findById(id).select('name profileImage').lean();
+  return {
+    name: user?.name || 'Unknown',
+    profileImage: user?.profileImage || ''
+  };
+};
+
+// Send Invitation
+export const sendInvitation = async (req, res) => {
+  try {
+    const { receiverId, receiverType } = req.body;
+    const senderId = req.user.id;
+    const senderType = req.user.role;
+
+    const receiver = receiverType === 'User'
+      ? await User.findById(receiverId).select('name profileImage').lean()
+      : await Recruiter.findById(receiverId).select('name profileImage').lean();
+    if (!receiver) return res.status(404).json({ success: false, message: 'Receiver not found' });
+
+    const existingInvitation = await Invitation.findOne({
+      sender: senderId,
+      senderModel: senderType,
+      receiver: receiverId,
+      receiverModel: receiverType,
+      status: 'pending'
+    }).lean();
+    if (existingInvitation) return res.status(400).json({ success: false, message: 'Invitation already sent' });
+
+    const invitation = new Invitation({
+      sender: senderId,
+      senderModel: senderType,
+      receiver: receiverId,
+      receiverModel: receiverType
+    });
+    await invitation.save();
+
+    const senderDetails = await getUserDetails(senderId, senderType);
+    const receiverKey = `${receiverType}_${receiverId}`;
+    const receiverSockets = activeSockets.get(receiverKey) || [];
+    if (receiverSockets.length > 0) {
+      receiverSockets.forEach((socket) => {
+        socket.emit('newInvitation', {
+          invitationId: invitation._id,
+          senderId,
+          senderType,
+          senderName: senderDetails.name,
+          senderImage: senderDetails.profileImage
+        });
+        console.log(`Emitted newInvitation to receiver socket ${socket.id}`);
+      });
+    }
+
+    res.status(201).json({ success: true, invitation });
+  } catch (error) {
+    console.error('Send invitation error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Accept Invitation
+export const acceptInvitation = async (req, res) => {
+  try {
+    const { invitationId } = req.body;
+    const userId = req.user.id;
+    const userType = req.user.role;
+
+    const invitation = await Invitation.findOneAndUpdate(
+      { _id: invitationId, receiver: userId, receiverModel: userType, status: 'pending' },
+      { status: 'accepted' },
+      { new: true, runValidators: true }
+    ).lean();
+    if (!invitation) return res.status(404).json({ success: false, message: 'Invitation not found or already processed' });
+
+    const senderDetails = await getUserDetails(invitation.sender, invitation.senderModel);
+    const receiverDetails = await getUserDetails(userId, userType);
+
+    const senderKey = `${invitation.senderModel}_${invitation.sender}`;
+    const senderSockets = activeSockets.get(senderKey) || [];
+    if (senderSockets.length > 0) {
+      senderSockets.forEach((socket) => {
+        socket.emit('invitationAccepted', {
+          invitationId,
+          receiverId: userId,
+          receiverType: userType,
+          receiverName: receiverDetails.name,
+          receiverImage: receiverDetails.profileImage
+        });
+        console.log(`Emitted invitationAccepted to sender socket ${socket.id}`);
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'Invitation accepted' });
+  } catch (error) {
+    console.error('Accept invitation error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
 
 // Send Message
 export const sendMessage = async (req, res) => {
   try {
-    const { senderId, senderType, receiverId, receiverType, message } =
-      req.body;
+    const { receiverId, receiverType, message } = req.body;
+    const senderId = req.user.id;
+    const senderType = req.user.role;
+    console.log("receiverId:", receiverId, receiverType, senderId, senderType);
 
-      console.log("senderId",senderId,"senderType",senderType,"receiverId",receiverId,"receiverType",receiverType,"message",message)
-
-    if (!senderId || !receiverId || !message) {
-      return res.status(400).json({ message: "Missing required fields" });
+    if (!receiverId || !message) {
+      return res.status(400).json({ success: false, message: 'Receiver ID and message are required' });
     }
 
-    // if sender is recruiter then no need to accept the invite
-    if(senderType == "Recruiter"){
-      const recruiter = await Recruiter.findById(senderId);  
-      if (!recruiter) {
-        return res.status(404).json({ message: "Recruiter not found" });
-      }
-      recruiter.invites.push(receiverId)
-      await recruiter.save()
+    // Validate receiver
+    const receiver = receiverType === 'User'
+      ? await User.findById(receiverId).select('name profileImage').lean()
+      : await Recruiter.findById(receiverId).select('name profileImage').lean();
+    if (!receiver) {
+      return res.status(404).json({ success: false, message: 'Receiver not found' });
     }
 
-    // If a user is messaging a recruiter, check invite status
-    if (senderType === "User" && receiverType === "Recruiter") {
-      const recruiter = await Recruiter.findById(receiverId);
-
-      if (!recruiter) {
-        return res.status(404).json({ message: "Recruiter not found" });
-      }
-
-      // check if user is added to invites
-      const hasInvite = recruiter.invites.includes(senderId);
-      const previousMessages = await Chat.findOne({
+    // Check if invitation is required and accepted
+    const invitationRequired = (senderType === 'User' && receiverType === 'Recruiter') ||
+                              (senderType === 'Recruiter' && receiverType === 'Recruiter');
+    if (invitationRequired) {
+      const invitation = await Invitation.findOne({
         sender: senderId,
-        senderType: "User",
+        senderModel: senderType,
         receiver: receiverId,
-        receiverType: "Recruiter",
-      });
-
-      if (previousMessages && !hasInvite) {
-        return res
-          .status(403)
-          .json({ message: "Recruiter has not accepted the invite yet" });
+        receiverModel: receiverType,
+        status: 'accepted'
+      }).lean();
+      if (!invitation) {
+        return res.status(403).json({ success: false, message: 'Invitation required and must be accepted' });
       }
     }
 
-
-    // Create message
-    const newMessage = new Chat({
+    // Create and save the new message
+    const newMessage = new Message({
       sender: senderId,
-      senderType,
+      senderModel: senderType,
       receiver: receiverId,
-      receiverType,
+      receiverModel: receiverType,
       message,
     });
-
     await newMessage.save();
 
-    const receiverSocketId = getReceiverSocketId(receiverId);
-    console.log("receiverSocketId",receiverSocketId)
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage);
+    // Get sender details
+    const senderDetails = await getUserDetails(senderId, senderType);
+
+    // Check if receiver is online and emit the message
+    const receiverKey = `${receiverType}_${receiverId}`;
+    console.log("receiverKey", receiverKey);
+    const receiverSockets = activeSockets.get(receiverKey) || [];
+    console.log("receiverSockets", receiverSockets);
+
+    if (receiverSockets.length === 0) {
+      // Receiver is offline, save as unread message
+      const unread = new UnreadMessage({
+        user: receiverId,
+        toModel: receiverType,
+        from: senderId,
+        fromModel: senderType,
+        messageId: newMessage._id
+      });
+      await unread.save();
+
+      const receiverModel = receiverType === 'User' ? User : Recruiter;
+      await receiverModel.findByIdAndUpdate(receiverId, {
+        $push: { unreadMessages: unread._id }
+      }, { new: true, runValidators: true }).lean();
+      console.log(`Receiver ${receiverKey} is offline, saved unread message`);
+    } else {
+      // Receiver is online, emit to all their sockets
+      receiverSockets.forEach((socket) => {
+        socket.emit('newMessage', {
+          ...newMessage.toObject(),
+          senderName: senderDetails.name,
+          senderImage: senderDetails.profileImage
+        });
+        console.log(`Emitted newMessage to receiver socket ${socket.id}`);
+      });
     }
 
-    res.status(201).json(newMessage);
+    // Emit the message back to the sender to confirm it was sent
+    const senderKey = `${senderType}_${senderId}`;
+    const senderSockets = activeSockets.get(senderKey) || [];
+    senderSockets.forEach((socket) => {
+      socket.emit('newMessage', {
+        ...newMessage.toObject(),
+        senderName: senderDetails.name,
+        senderImage: senderDetails.profileImage
+      });
+      console.log(`Emitted newMessage to sender socket ${socket.id}`);
+    });
+
+    // Respond to the client
+    res.status(201).json({ success: true, message: newMessage });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Send message error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-// Recruiter Accepts Invite
-export const acceptInvite = async (req, res) => {
+// Mark Message as Seen
+export const markMessageAsSeen = async (req, res) => {
   try {
-    const { recruiterId, userId } = req.body;
+    const { messageId } = req.body;
+    const userId = req.user.id;
+    const userType = req.user.role;
 
-    const recruiter = await Recruiter.findById(recruiterId);
-    if (!recruiter) {
-      return res.status(404).json({ error: "Recruiter not found" });
+    const message = await Message.findOneAndUpdate(
+      { _id: messageId, receiver: userId, receiverModel: userType },
+      { status: 'seen' },
+      { new: true, runValidators: true }
+    ).lean();
+    if (!message) return res.status(404).json({ success: false, message: 'Message not found or unauthorized' });
+
+    const unread = await UnreadMessage.findOneAndDelete({
+      user: userId,
+      toModel: userType,
+      messageId
+    }).lean();
+    if (unread) {
+      const userModel = userType === 'User' ? User : Recruiter;
+      await userModel.findByIdAndUpdate(userId, {
+        $pull: { unreadMessages: messageId }
+      }, { new: true, runValidators: true }).lean();
     }
 
-    if (!recruiter.invites.includes(userId)) {
-      recruiter.invites.push(userId);
-      await recruiter.save();
+    const senderDetails = await getUserDetails(message.sender, message.senderModel);
+    const senderKey = `${message.senderModel}_${message.sender}`;
+    const senderSockets = activeSockets.get(senderKey) || [];
+    if (senderSockets.length > 0) {
+      senderSockets.forEach((socket) => {
+        socket.emit('messageSeen', {
+          messageId,
+          timestamp: new Date(),
+          senderName: senderDetails.name,
+          senderImage: senderDetails.profileImage
+        });
+        console.log(`Emitted messageSeen to sender socket ${socket.id}`);
+      });
     }
 
-    res.status(200).json({ message: "Invite accepted" });
+    res.status(200).json({ success: true, message: 'Message marked as seen' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Mark message as seen error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Typing Indicator
+export const typing = async (req, res) => {
+  try {
+    const { receiverId, receiverType } = req.body;
+    const senderId = req.user.id;
+    const senderType = req.user.role;
+
+    const senderDetails = await getUserDetails(senderId, senderType);
+    const receiverKey = `${receiverType}_${receiverId}`;
+    const receiverSockets = activeSockets.get(receiverKey) || [];
+    if (receiverSockets.length > 0) {
+      receiverSockets.forEach((socket) => {
+        socket.emit('typing', {
+          senderId,
+          senderType,
+          senderName: senderDetails.name
+        });
+        console.log(`Emitted typing to receiver socket ${socket.id}`);
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'Typing status sent' });
+  } catch (error) {
+    console.error('Typing error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
 // Get Chat History
 export const getChatHistory = async (req, res) => {
   try {
-    const { senderId, receiverId } = req.params;
+    const { userId: receiverId } = req.params;
+    console.log("receiverId:", receiverId);
 
-    const messages = await Chat.find({
-      $or: [
-        { sender: senderId, receiver: receiverId },
-        { sender: receiverId, receiver: senderId },
-      ],
-    }).sort({ timestamp: 1 });
+    const senderId = req.user.id;
+    const senderType = req.user.role;
 
-    res.status(200).json(messages);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
 
-
-export const getChatUsers = async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ error: "User ID is required" });
+    if (!mongoose.Types.ObjectId.isValid(receiverId)) {
+      return res.status(400).json({ success: false, message: 'Invalid receiver ID' });
     }
 
-    // Find all messages where user is sender or receiver
-    const messages = await Chat.find({
-      $or: [{ sender: userId }, { receiver: userId }],
+    if (!mongoose.Types.ObjectId.isValid(senderId)) {
+      return res.status(400).json({ success: false, message: 'Invalid sender ID' });
+    }
+
+    const messages = await Message.find({
+      $or: [
+        {
+          sender: senderId,
+          senderModel: senderType,
+          receiver: receiverId,
+          receiverModel: { $in: ['User', 'Recruiter'] },
+        },
+        {
+          sender: receiverId,
+          senderModel: { $in: ['User', 'Recruiter'] },
+          receiver: senderId,
+          receiverModel: senderType,
+        },
+      ],
+    })
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .populate({
+        path: 'sender',
+        select: 'name profileImage _id',
+      })
+      .populate({
+        path: 'receiver',
+        select: 'name profileImage _id',
+      });
+
+    const totalMessages = await Message.countDocuments({
+      $or: [
+        {
+          sender: senderId,
+          senderModel: senderType,
+          receiver: receiverId,
+          receiverModel: { $in: ['User', 'Recruiter'] },
+        },
+        {
+          sender: receiverId,
+          senderModel: { $in: ['User', 'Recruiter'] },
+          receiver: senderId,
+          receiverModel: senderType,
+        },
+      ],
     });
 
-    // Extract unique user IDs with types
-    const userSet = new Set();
+    console.log(`Fetched ${messages.length} messages (page ${page}, limit ${limit})`);
 
-    messages.forEach((msg) => {
-      if (msg.sender.toString() !== userId) {
-        userSet.add(JSON.stringify({ id: msg.sender.toString(), type: msg.senderType }));
-      }
-      if (msg.receiver.toString() !== userId) {
-        userSet.add(JSON.stringify({ id: msg.receiver.toString(), type: msg.receiverType }));
-      }
+    res.status(200).json({
+      success: true,
+      messages,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalMessages / limit),
+        totalMessages,
+        limit,
+      },
     });
-
-    // Convert Set to Array
-    const chatUserIds = Array.from(userSet).map((item) => JSON.parse(item));
-
-    // Fetch user details from both schemas
-    const employers = await Recruiter.find({
-      _id: { $in: chatUserIds.filter((u) => u.type === "Recruiter").map((u) => u.id) },
-    }).select("name email profileImage");
-
-    const workers = await User.find({
-      _id: { $in: chatUserIds.filter((u) => u.type === "User").map((u) => u.id) },
-    }).select("name email profileImage");
-
-    // Merge both users
-    const chatUsers = [...employers, ...workers];
-
-    res.status(200).json(chatUsers);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Get chat history error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };

@@ -88,7 +88,12 @@ const userSchema = new mongoose.Schema({
   maxlength: [100, "Bio must be less than 100 characters"],
   minlength: [10, "Bio must be at least 10 characters"],
   trim: true
-}
+},
+
+unreadMessages: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'UnreadMessage'
+  }]
 });
 
 // Hash password before saving

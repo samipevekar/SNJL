@@ -1,4 +1,3 @@
-// controllers/userController.js
 import User from "../models/userModel.js";
 import Recruiter from "../models/recruiterModel.js";
 
@@ -9,6 +8,7 @@ const getRandomUsers = async (req, res) => {
   try {
     // Extract logged-in user info from req.user
     const loggedInUserId = req.user.id; // Use 'id' as set by middleware
+    
     const loggedInUserRole = req.user.role; // Use 'role' as set by middleware
 
     // Fetch the full user document based on role and id
@@ -25,14 +25,23 @@ const getRandomUsers = async (req, res) => {
 
     // Get the friends list of the logged-in user (as strings for comparison)
     const loggedInUserFriends = (loggedInUser.friends || []).map((friend) =>
-      friend.friendId.toString()
-    );
-    console.log("friend", loggedInUserFriends);
+      friend.friendId ? friend.friendId.toString() : null
+    ).filter(friendId => friendId !== null); // Filter out nulls if friendId is missing
+    console.log("Logged-in user friends:", loggedInUserFriends);
 
     // Query to exclude the logged-in user and their friends
     const excludeIds = [loggedInUserId, ...loggedInUserFriends];
+    console.log("Excluded IDs:", excludeIds); // Debug to verify exclusion list
 
-    // Fetch random users from the User model
+    // Validate that excludeIds contains valid ObjectIds
+    if (excludeIds.length === 0) {
+      console.log("No friends or self to exclude, proceeding with all users.");
+    } else if (excludeIds.some(id => !id.match(/^[0-9a-fA-F]{24}$/))) {
+      console.warn("Invalid ObjectId detected in excludeIds, filtering out:", excludeIds);
+      excludeIds.filter(id => id.match(/^[0-9a-fA-F]{24}$/));
+    }
+
+    // Fetch random users from the User model (all fields except email, password, and phone)
     const randomUsers = await User.aggregate([
       {
         $match: {
@@ -42,17 +51,15 @@ const getRandomUsers = async (req, res) => {
       { $sample: { size: 5 } }, // Get 5 random users
       {
         $project: {
-          name: 1,
-          username: 1,
-          profileImage: 1,
-          role: 1,
-          bio: 1,
-          friends: 1, // Include friends to calculate mutual friends
+          password: 0, // Exclude password
+          email: 0,    // Exclude email
+          phone: 0,    // Exclude phone
+          // Include all other fields by omitting password, email, and phone
         },
       },
     ]);
 
-    // Fetch random recruiters from the Recruiter model
+    // Fetch random recruiters from the Recruiter model (all fields except email, password, and phone)
     const randomRecruiters = await Recruiter.aggregate([
       {
         $match: {
@@ -62,16 +69,15 @@ const getRandomUsers = async (req, res) => {
       { $sample: { size: 5 } }, // Get 5 random recruiters
       {
         $project: {
-          name: 1,
-          email: 1,
-          profileImage: 1,
-          role: 1,
-          friends: 1, // Include friends to calculate mutual friends
+          password: 0, // Exclude password
+          email: 0,    // Exclude email
+          phone: 0,    // Exclude phone
+          // Include all other fields by omitting password, email, and phone
         },
       },
     ]);
 
-    // Combine the results
+    // Combine the results with userModel identifier
     let combinedUsers = [
       ...randomUsers.map((user) => ({
         ...user,
@@ -95,12 +101,9 @@ const getRandomUsers = async (req, res) => {
         { $sample: { size: remainingCount } },
         {
           $project: {
-            name: 1,
-            username: 1,
-            profileImage: 1,
-            role: 1,
-            bio: 1,
-            friends: 1,
+            password: 0, // Exclude password
+            email: 0,    // Exclude email
+            phone: 0,    // Exclude phone
           },
         },
       ]);
@@ -114,11 +117,9 @@ const getRandomUsers = async (req, res) => {
         { $sample: { size: remainingCount - additionalUsers.length } },
         {
           $project: {
-            name: 1,
-            email: 1,
-            profileImage: 1,
-            role: 1,
-            friends: 1,
+            password: 0, // Exclude password
+            email: 0,    // Exclude email
+            phone: 0,    // Exclude phone
           },
         },
       ]);
@@ -136,20 +137,20 @@ const getRandomUsers = async (req, res) => {
       ];
     }
 
-    // Calculate mutual friends for each user
+    // Calculate mutual friends for each user with profile images
     const finalUsers = await Promise.all(
       combinedUsers.map(async (user) => {
         // Extract friend IDs of the random user, default to empty array if undefined
         const userFriends = (user.friends || []).map((friend) =>
-          friend.friendId.toString()
-        );
+          friend.friendId ? friend.friendId.toString() : null
+        ).filter(friendId => friendId !== null);
 
         // Find mutual friends by intersecting logged-in user's friends and random user's friends
         const mutualFriendIds = loggedInUserFriends.filter((friendId) =>
           userFriends.includes(friendId)
         );
 
-        // Fetch details of mutual friends from both models
+        // Fetch details of mutual friends from both models, ensuring profileImage is included
         const mutualFriends = await Promise.all(
           mutualFriendIds.map(async (friendId) => {
             // Determine the model of each friend from the random user's friends array
@@ -171,13 +172,13 @@ const getRandomUsers = async (req, res) => {
           })
         );
 
-        // Filter out any null results and format mutual friends
+        // Filter out any null results and format mutual friends with profileImage
         const formattedMutualFriends = mutualFriends
           .filter((friend) => friend !== null)
           .map((friend) => ({
             _id: friend._id,
             name: friend.name,
-            profileImage: friend.profileImage,
+            profileImage: friend.profileImage, // Ensure profileImage is included
             role: friend.role,
             userModel: friend.role === "User" ? "User" : "Recruiter",
           }));

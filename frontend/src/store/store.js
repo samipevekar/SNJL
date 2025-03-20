@@ -6,6 +6,7 @@ import userReducer from './slices/userSlice.js'
 import postReducer from './slices/postSlice.js'
 import randomDataReducer from './slices/RandomDataSlice.js'
 import chatReducer from './slices/chatSlice.js'
+import onlineStatusReducer from './slices/onlineStatusSlice.js'
 export const store = configureStore({
   reducer: {
     userAuth: userAuthReducer,
@@ -14,6 +15,8 @@ export const store = configureStore({
     user: userReducer,
     posts: postReducer,
     randomUsers: randomDataReducer,
-    chat: chatReducer
+    chat: chatReducer,
+    onlineStatus: onlineStatusReducer,
+
   },
 });

@@ -12,6 +12,7 @@ import EditProfile from "../screens/UserAuth/EditProfile";
 import ChatScreen from "../screens/ChatScreen";
 import PostReviewTab from "../components/PostReviewTab";
 import RandomUser from "../screens/RandomUser";
+import AllChatsScreen from "../screens/RecruiterAuth/AllChatsScreen";
 
 const Stack = createStackNavigator();
 
@@ -33,6 +34,7 @@ const StackNavigation = () => {
       <Stack.Screen name="EditProfile" component={EditProfile} />
       <Stack.Screen name="ChatScreen" component={ChatScreen} />
       <Stack.Screen name="RandomUser" component={RandomUser} />
+      <Stack.Screen name="AllChatsScreen" component={AllChatsScreen} />
      
     </Stack.Navigator>
   );
