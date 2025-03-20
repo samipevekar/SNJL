@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "743048473785",
+    "project_id": "snjl-auth",
+    "storage_bucket": "snjl-auth.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:743048473785:android:b53e99ef0097126d55ff68",
+        "android_client_info": {
+          "package_name": "com.frontend"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "743048473785-qd7s1nonnlaujh3tpabb1cfkkf7kvsbh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.frontend",
+            "certificate_hash": "7051180b2f9019fb1b84ae1dc5ad3549cc4703dc"
+          }
+        },
+        {
+          "client_id": "743048473785-fsnkfi78e8mgkuh0qa1e04l60ahun14d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAV3y7cJjOTlYeqf5XjEV-ozjnkHv961iQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "743048473785-fsnkfi78e8mgkuh0qa1e04l60ahun14d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
