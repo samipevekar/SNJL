@@ -181,6 +181,7 @@ export const sendMessage = async (req, res) => {
     } else {
       // Receiver is online, emit to all their sockets
       receiverSockets.forEach((socket) => {
+        console.log("socket", socket);
         socket.emit('newMessage', {
           ...newMessage.toObject(),
           senderName: senderDetails.name,
@@ -367,6 +368,79 @@ export const getChatHistory = async (req, res) => {
     });
   } catch (error) {
     console.error('Get chat history error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+
+
+
+export const getAllChats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userType = req.user.role;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    // Aggregate messages to group by conversation partner
+    const conversations = await Message.aggregate([
+      {
+        $match: {
+          $or: [
+            { sender: new mongoose.Types.ObjectId(userId), senderModel: userType },
+            { receiver: new mongoose.Types.ObjectId(userId), receiverModel: userType },
+          ],
+        },
+      },
+      {
+        $sort: { timestamp: -1 }, // Sort by timestamp to get the most recent message first
+      },
+      {
+        $group: {
+          _id: {
+            $cond: [
+              { $eq: ['$sender', new mongoose.Types.ObjectId(userId)] },
+              { userId: '$receiver', userType: '$receiverModel' },
+              { userId: '$sender', userType: '$senderModel' },
+            ],
+          },
+          latestMessage: { $first: '$message' },
+          latestTimestamp: { $first: '$timestamp' },
+          latestMessageId: { $first: '$_id' },
+        },
+      },
+      {
+        $sort: { latestTimestamp: -1 }, // Sort conversations by the latest message timestamp
+      },
+    ]);
+
+    // Fetch user details for each conversation partner
+    const chats = await Promise.all(
+      conversations.map(async (conversation) => {
+        const { userId: otherUserId, userType: otherUserType } = conversation._id;
+        const userDetails = await getUserDetails(otherUserId, otherUserType);
+        return {
+          user: {
+            _id: otherUserId,
+            type: otherUserType,
+            name: userDetails.name,
+            profileImage: userDetails.profileImage,
+          },
+          latestMessage: conversation.latestMessage,
+          latestTimestamp: conversation.latestTimestamp,
+          latestMessageId: conversation.latestMessageId,
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      chats,
+    });
+  } catch (error) {
+    console.error('Get all chats error:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };

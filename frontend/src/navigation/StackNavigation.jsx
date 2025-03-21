@@ -12,7 +12,8 @@ import EditProfile from "../screens/UserAuth/EditProfile";
 import ChatScreen from "../screens/ChatScreen";
 import PostReviewTab from "../components/PostReviewTab";
 import RandomUser from "../screens/RandomUser";
-import AllChatsScreen from "../screens/RecruiterAuth/AllChatsScreen";
+import AllChatsScreen from "../screens/AllChatsScreen";
+
 
 const Stack = createStackNavigator();
 

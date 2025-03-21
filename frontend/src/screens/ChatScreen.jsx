@@ -155,6 +155,7 @@ export default function ChatScreen({ route, navigation }) {
   // Handle sending a message
   const handleSendMessage = useCallback(() => {
     console.log('Send button pressed, messageText:', messageText);
+    setMessageText('');
     if (!messageText.trim()) {
       console.log('Message is empty, not sending');
       return;
@@ -179,7 +180,7 @@ export default function ChatScreen({ route, navigation }) {
       .then((result) => {
         console.log('Send message success:', result);
         // Do not add the message here; wait for the server to emit 'newMessage'
-        setMessageText('');
+        
         flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       })
       .catch((err) => {
@@ -290,9 +291,9 @@ export default function ChatScreen({ route, navigation }) {
         {!isSender && (
           <View style={styles.profileImageWrapper}>
             {hasValidReceiverImage ? (
-              <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
+              <Image source={{ uri: user.profileImage }} style={styles.chatImage} />
             ) : (
-              <Icon name="person-circle-outline" size={30} color="#888" />
+              <Image source={require('../../images/AvatarLight.png')} style={styles.chatImage} />
             )}
           </View>
         )}
@@ -316,9 +317,9 @@ export default function ChatScreen({ route, navigation }) {
         {isSender && (
           <View style={styles.profileImageWrapper}>
             {hasValidSenderImage ? (
-              <Image source={{ uri: currentUser.profileImage }} style={styles.profileImage} />
+              <Image source={{ uri: currentUser.profileImage }} style={styles.chatImage} />
             ) : (
-              <Icon name="person-circle-outline" size={30} color="#888" />
+              <Image source={require('../../images/AvatarLight.png')} style={styles.chatImage} />
             )}
           </View>
         )}
@@ -335,7 +336,7 @@ export default function ChatScreen({ route, navigation }) {
         {hasValidProfileImage ? (
           <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
         ) : (
-          <Icon name="person-circle-outline" size={40} color="#FFFFFF" />
+          <Image source={require('../../images/AvatarLight.png')} style={styles.profileImage} />
         )}
         <View>
           <Text style={[styles.userName, { color: '#FFFFFF' }]}>
@@ -438,7 +439,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5EA',
   },
-  profileImage: { width: 40, height: 40, borderRadius: 20, marginRight: 10, borderWidth: 2, borderColor: '#34C759' },
+  profileImage: { width: 50, height: 50, borderRadius: 25, marginRight: 10, borderWidth: 5, borderColor: '#34C759' },
+  chatImage: { width: 30, height: 30, borderRadius: 20, marginRight: 10, borderWidth: 5, borderColor: '#34C759' },
   profileImageWrapper: { marginHorizontal: 5 },
   userName: { fontSize: 16, fontWeight: 'bold' },
   userUsername: { fontSize: 14 },
@@ -470,7 +472,7 @@ const styles = StyleSheet.create({
   inviteButtonText: { color: '#FFFFFF', fontWeight: 'bold' },
   errorContainer: { padding: 10, backgroundColor: '#FFCDD2', borderRadius: 5, margin: 10 },
   errorText: { color: '#D32F2F', fontSize: 14 },
-  seenText: { fontSize: 10, color: '#34C759', textAlign: 'right' },
+  seenText: { fontSize: 10, color: '#FFFFFF', textAlign: 'right' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingMoreContainer: { padding: 10, alignItems: 'center' },
   loadingText: { color: '#888', fontSize: 16 },
