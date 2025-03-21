@@ -105,12 +105,35 @@ export const markMessageAsSeen = createAsyncThunk(
   }
 );
 
+
+
+export const fetchAllChats = createAsyncThunk(
+  'chat/fetchAllChats',
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = await getToken();
+      const response = await axiosInstance.get('/chat/all-chats', {
+        headers: { Authorization: `token ${token}` },
+      });
+      console.log('Fetch all chats response:', response.data);
+      return response.data.chats;
+    } catch (error) {
+      console.error('Fetch all chats error:', error.response?.data);
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch all chats');
+    }
+  }
+);
+
 // Create the chat slice
 const chatSlice = createSlice({
   name: 'chat',
   initialState: {
+    chats: [],
     messages: [],
     loading: false,
+    sendingMessage: false,
+    markingMessageAsSeen: false,
+    acceptingInvite: false, 
     error: null,
     inviteStatus: null,
     typingStatus: false,
@@ -137,6 +160,9 @@ const chatSlice = createSlice({
       console.log('Clearing chat state');
       state.messages = [];
       state.loading = false;
+      state.sendingMessage = false;
+      state.markingMessageAsSeen = false;
+      state.acceptingInvite = false;
       state.error = null;
       state.inviteStatus = null;
       state.typingStatus = false;
@@ -145,13 +171,26 @@ const chatSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+    .addCase(fetchAllChats.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    })
+    .addCase(fetchAllChats.fulfilled, (state, action) => {
+      state.loading = false;
+      state.chats = action.payload;
+      console.log('All chats updated in state:', state.chats.length, 'chats');
+    })
+    .addCase(fetchAllChats.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload;
+    })
       .addCase(fetchChatHistory.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchChatHistory.fulfilled, (state, action) => {
         state.loading = false;
-        state.messages = [...action.payload.messages, ...state.messages];
+        state.messages = [...state.messages,...action.payload.messages];
         state.pagination = action.payload.pagination;
         console.log('Chat history updated in state:', state.messages.length, 'messages');
       })
@@ -160,26 +199,26 @@ const chatSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(sendMessage.pending, (state) => {
-        state.loading = true;
+        state.sendingMessage = true;
         state.error = null;
       })
       .addCase(sendMessage.fulfilled, (state, action) => {
-        state.loading = false;
+        state.sendingMessage = false;
       })
       .addCase(sendMessage.rejected, (state, action) => {
-        state.loading = false;
+        state.sendingMessage = false;
         state.error = action.payload;
       })
       .addCase(sendInvite.pending, (state) => {
-        state.loading = true;
+        state.sendingInvite = true;
         state.error = null;
       })
       .addCase(sendInvite.fulfilled, (state, action) => {
-        state.loading = false;
+        state.sendingInvite = false;
         state.inviteStatus = action.payload.status || 'pending';
       })
       .addCase(sendInvite.rejected, (state, action) => {
-        state.loading = false;
+        state.sendingInvite = false;
         state.error = action.payload;
       })
       .addCase(acceptInvite.pending, (state) => {
@@ -187,19 +226,19 @@ const chatSlice = createSlice({
         state.error = null;
       })
       .addCase(acceptInvite.fulfilled, (state, action) => {
-        state.loading = false;
+        state.acceptingInvite = false;
         state.inviteStatus = 'accepted';
       })
       .addCase(acceptInvite.rejected, (state, action) => {
-        state.loading = false;
+        state.acceptingInvite = false;
         state.error = action.payload;
       })
       .addCase(markMessageAsSeen.pending, (state) => {
-        state.loading = true;
+        state.markingMessageAsSeen = true;
         state.error = null;
       })
       .addCase(markMessageAsSeen.fulfilled, (state, action) => {
-        state.loading = false;
+        state.markingMessageAsSeen = false;
         const { messageId } = action.payload;
         const message = state.messages.find((msg) => msg._id === messageId);
         if (message) {
@@ -207,7 +246,7 @@ const chatSlice = createSlice({
         }
       })
       .addCase(markMessageAsSeen.rejected, (state, action) => {
-        state.loading = false;
+        state.markingMessageAsSeen = false;
         state.error = action.payload;
       });
   },

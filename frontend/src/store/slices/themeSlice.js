@@ -3,7 +3,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const initialState = {
-  mode: 'dark',
+  mode: 'light',
 };
 
 const themeSlice = createSlice({
