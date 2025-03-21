@@ -22,7 +22,7 @@ export const SocketProvider = ({ children }) => {
         return;
       }
 
-      socketRef.current = io('http://192.168.43.111:5000', {
+      socketRef.current = io('https://34fd-2409-4089-bcc9-283e-ac72-ba67-6c61-fa1d.ngrok-free.app', {
         auth: { token },
         reconnection: true,
         reconnectionAttempts: Infinity,

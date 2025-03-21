@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { Text, Platform, View, TextInput, Modal, TouchableOpacity, StyleSheet, ScrollView, StatusBar, Alert } from 'react-native';
+import {
+  Text, Platform, View, TextInput, Modal, TouchableOpacity, StyleSheet,
+  ScrollView, StatusBar, Alert, Image // Added Image for profile picture
+} from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { Picker } from "@react-native-picker/picker";
+import Header from "../../components/Header";
 import DateTimePicker from "@react-native-community/datetimepicker";
-// import DocumentPicker from 'react-native-document-picker';
+import ImagePicker from 'react-native-image-picker'; // Added for image picking
 
 const EditProfile = () => {
   const [firstName, setFirstName] = useState('');
@@ -22,15 +26,16 @@ const EditProfile = () => {
   const [workExperience, setWorkExperience] = useState('');
   const [skill, setSkill] = useState('');
   const [portfolioLink, setPortfolioLink] = useState('');
-  const [resume, setResume] = useState(null); // Changed to store file object
+  const [resume, setResume] = useState(null);
   const [languageProficiency, setLanguageProficiency] = useState('');
   const [achievements, setAchievements] = useState('');
   const [birthYear, setBirthYear] = useState("");
   const [date, setDate] = useState(new Date());
-  const [graduationDate, setGraduationDate] = useState(new Date()); // Added for Year of Graduation
+  const [graduationDate, setGraduationDate] = useState(new Date());
   const [gender, setGender] = useState("");
   const [showPicker, setShowPicker] = useState(false);
-  const [showGraduationPicker, setShowGraduationPicker] = useState(false); // Added for Year of Graduation
+  const [showGraduationPicker, setShowGraduationPicker] = useState(false);
+  const [profileImage, setProfileImage] = useState(null); // State for profile image
 
   const onChange = (event, selectedDate) => {
     setShowPicker(Platform.OS === "ios");
@@ -48,22 +53,27 @@ const EditProfile = () => {
     }
   };
 
-  const handleFilePick = async () => {
-    try {
-      const res = await DocumentPicker.pick({
-        type: [DocumentPicker.types.pdf, DocumentPicker.types.doc, DocumentPicker.types.docx], // Allow only PDF, DOC, DOCX files
-      });
-      setResume(res[0]); // Store the selected file
-      Alert.alert('Success', `File selected: ${res[0].name}`);
-    } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
-        // User cancelled the picker
-        console.log('User cancelled the file picker');
+  const handleImagePick = () => {
+    const options = {
+      title: 'Select Profile Picture',
+      storageOptions: {
+        skipBackup: true,
+        path: 'images',
+      },
+    };
+
+    ImagePicker.showImagePicker(options, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.error) {
+        Alert.alert('Error', 'An error occurred while picking the image.');
+        console.log('ImagePicker Error: ', response.error);
       } else {
-        Alert.alert('Error', 'An error occurred while picking the file.');
-        console.log(err);
+        // Set the image URI to state
+        setProfileImage(response.uri);
+        Alert.alert('Success', 'Profile picture selected!');
       }
-    }
+    });
   };
 
   const handleSave = () => {
@@ -100,9 +110,10 @@ const EditProfile = () => {
       workExperience,
       skill,
       portfolioLink,
-      resume: resume ? resume.name : null, // Log the file name if a file is selected
+      resume: resume ? resume.name : null,
       languageProficiency,
       achievements,
+      profileImage, // Include profile image in the log
     });
 
     Alert.alert('Success', 'Profile updated successfully!');
@@ -113,27 +124,24 @@ const EditProfile = () => {
       <StatusBar backgroundColor="#000" barStyle="light-content" />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
-          <Icon name="arrow-left" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>EDIT PROFILE</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Icon name="search" size={24} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Icon name="ellipsis-v" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Header />
 
       <ScrollView style={styles.scrollContainer}>
         {/* Profile Section */}
         <View style={styles.profileContainer}>
           <View style={styles.avatarWrapper}>
-            <Icon name="user" size={40} color="#333" />
-            <TouchableOpacity style={styles.editIcon}>
+            {profileImage ? (
+              <Image
+                source={{ uri: profileImage }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <Icon name="user" size={40} color="#333" />
+            )}
+            <TouchableOpacity
+              style={styles.editIcon}
+              onPress={handleImagePick} // Trigger image picker on press
+            >
               <Icon name="pencil" size={10} color="black" />
             </TouchableOpacity>
           </View>
@@ -215,7 +223,6 @@ const EditProfile = () => {
                 onChangeText={setPhone}
               />
             </View>
-
             <View style={styles.halfInput}>
               <Text style={styles.inputLabel}>Pin CODE<Text style={styles.required}>*</Text></Text>
               <TextInput
@@ -324,7 +331,7 @@ const EditProfile = () => {
               mode="date"
               display="default"
               onChange={onGraduationChange}
-              maximumDate={new Date()} // Prevent selecting future dates
+              maximumDate={new Date()}
             />
           )}
 
@@ -353,7 +360,6 @@ const EditProfile = () => {
                 onChangeText={setJobTitle}
               />
             </View>
-
             <View style={styles.halfInput}>
               <Text style={styles.inputLabel}>Work Experience (in years)</Text>
               <TextInput
@@ -393,9 +399,6 @@ const EditProfile = () => {
           {/* Additional Details Section */}
           <Text style={[styles.sectionTitle, styles.sectionDivider]}>Additional Details</Text>
 
-          {/* Resume */}
-          
-
           {/* Language Proficiency */}
           <Text style={styles.inputLabel}>Language Proficiency</Text>
           <TextInput
@@ -431,40 +434,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#000',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    height: 75,
-    width: '100%',
-  },
-  backButton: {
-    padding: 5,
-  },
-  headerTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-    fontFamily: 'Inter',
-  },
-  headerActions: {
-    flexDirection: 'row',
-  },
-  headerIcon: {
-    marginLeft: 15,
-  },
   scrollContainer: {
     flex: 1,
-    backgroundColor: '#494949',
+    backgroundColor: '#494949', // Grey background for the entire scroll view
   },
   profileContainer: {
     alignItems: 'center',
     paddingTop: 20,
     paddingBottom: 21,
-    backgroundColor: '#fff',
+    backgroundColor: '#fff', // White background for the top section
   },
   avatarWrapper: {
     position: 'relative',
@@ -478,10 +456,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     overflow: 'hidden',
   },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 44, // Ensure the uploaded image is circular
+  },
   editIcon: {
     position: 'absolute',
-    bottom: -30,
-    right: -30,
+    bottom: 0, // Adjusted to position at the bottom-right
+    right: 0,
     backgroundColor: 'green',
     width: 20,
     height: 20,
@@ -497,12 +480,13 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   formContainer: {
-    backgroundColor: '#494949',
+    backgroundColor: '#494949', // Grey background for the form container
     padding: 40,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingBottom: 50,
     width: '100%',
+    marginTop: -20, // Pull the form container up to overlap with the profile section
   },
   sectionTitle: {
     color: 'white',
@@ -564,22 +548,6 @@ const styles = StyleSheet.create({
   },
   halfInput: {
     width: '48%',
-  },
-  uploadButton: {
-    backgroundColor: '#ddd',
-    padding: 8,
-    borderRadius: 10,
-    marginBottom: 15,
-    width: '100%',
-    height: 33,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  uploadButtonText: {
-    color: '#999',
-    fontSize: 10,
-    fontFamily: 'Inter',
-    textAlign: 'center',
   },
   saveButton: {
     backgroundColor: '#d9d9d9',
