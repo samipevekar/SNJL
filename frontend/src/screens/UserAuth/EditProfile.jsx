@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Text, Platform ,View, TextInput,Modal, TouchableOpacity, StyleSheet, ScrollView, StatusBar, Alert } from 'react-native';
+import { Text, Platform, View, TextInput, Modal, TouchableOpacity, StyleSheet, ScrollView, StatusBar, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
+// import DocumentPicker from 'react-native-document-picker';
 
 const EditProfile = () => {
   const [firstName, setFirstName] = useState('');
@@ -12,7 +13,6 @@ const EditProfile = () => {
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
- 
   const [bio, setBio] = useState('');
   const [qualification, setQualification] = useState('');
   const [college, setCollege] = useState('');
@@ -22,24 +22,51 @@ const EditProfile = () => {
   const [workExperience, setWorkExperience] = useState('');
   const [skill, setSkill] = useState('');
   const [portfolioLink, setPortfolioLink] = useState('');
-  const [resume, setResume] = useState('');
+  const [resume, setResume] = useState(null); // Changed to store file object
   const [languageProficiency, setLanguageProficiency] = useState('');
   const [achievements, setAchievements] = useState('');
   const [birthYear, setBirthYear] = useState("");
   const [date, setDate] = useState(new Date());
+  const [graduationDate, setGraduationDate] = useState(new Date()); // Added for Year of Graduation
   const [gender, setGender] = useState("");
   const [showPicker, setShowPicker] = useState(false);
+  const [showGraduationPicker, setShowGraduationPicker] = useState(false); // Added for Year of Graduation
 
   const onChange = (event, selectedDate) => {
-    setShowPicker(Platform.OS === "ios"); 
+    setShowPicker(Platform.OS === "ios");
     if (selectedDate) {
       setDate(selectedDate);
-      setBirthYear(selectedDate.getFullYear().toString()); 
+      setBirthYear(selectedDate.getFullYear().toString());
+    }
+  };
+
+  const onGraduationChange = (event, selectedDate) => {
+    setShowGraduationPicker(Platform.OS === "ios");
+    if (selectedDate) {
+      setGraduationDate(selectedDate);
+      setGraduationYear(selectedDate.getFullYear().toString());
+    }
+  };
+
+  const handleFilePick = async () => {
+    try {
+      const res = await DocumentPicker.pick({
+        type: [DocumentPicker.types.pdf, DocumentPicker.types.doc, DocumentPicker.types.docx], // Allow only PDF, DOC, DOCX files
+      });
+      setResume(res[0]); // Store the selected file
+      Alert.alert('Success', `File selected: ${res[0].name}`);
+    } catch (err) {
+      if (DocumentPicker.isCancel(err)) {
+        // User cancelled the picker
+        console.log('User cancelled the file picker');
+      } else {
+        Alert.alert('Error', 'An error occurred while picking the file.');
+        console.log(err);
+      }
     }
   };
 
   const handleSave = () => {
-
     if (!firstName || !lastName || !username || !email || !skill) {
       Alert.alert(
         'Error',
@@ -48,13 +75,11 @@ const EditProfile = () => {
       return;
     }
 
-    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert('Error', 'Please enter a valid email address.');
       return;
     }
-
 
     console.log({
       firstName,
@@ -75,21 +100,19 @@ const EditProfile = () => {
       workExperience,
       skill,
       portfolioLink,
-      resume,
+      resume: resume ? resume.name : null, // Log the file name if a file is selected
       languageProficiency,
       achievements,
     });
 
-    
     Alert.alert('Success', 'Profile updated successfully!');
   };
 
   return (
     <View style={styles.container}>
-      
       <StatusBar backgroundColor="#000" barStyle="light-content" />
 
-      
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton}>
           <Icon name="arrow-left" size={24} color="white" />
@@ -108,13 +131,13 @@ const EditProfile = () => {
       <ScrollView style={styles.scrollContainer}>
         {/* Profile Section */}
         <View style={styles.profileContainer}>
-  <View style={styles.avatarWrapper}>
-    <Icon name="user" size={60} color="#333" />
-    <TouchableOpacity style={styles.editIcon}>
-      <Icon name="pencil" size={14} color="black" />
-    </TouchableOpacity>
-  </View>
-</View>
+          <View style={styles.avatarWrapper}>
+            <Icon name="user" size={40} color="#333" />
+            <TouchableOpacity style={styles.editIcon}>
+              <Icon name="pencil" size={10} color="black" />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Form Container */}
         <View style={styles.formContainer}>
@@ -130,7 +153,6 @@ const EditProfile = () => {
             placeholderTextColor="#999"
             value={firstName}
             onChangeText={setFirstName}
-            
           />
 
           {/* Last Name */}
@@ -171,7 +193,7 @@ const EditProfile = () => {
           />
 
           {/* Address */}
-          <Text style={styles.inputLabel}>Address</Text>
+          <Text style={styles.inputLabel}>Address<Text style={styles.required}>*</Text></Text>
           <TextInput
             style={styles.input}
             placeholder="Enter Address"
@@ -180,10 +202,10 @@ const EditProfile = () => {
             onChangeText={setAddress}
           />
 
-          {/* Phone & PIN in a row */}
+          {/* Phone & Pin CODE in a row */}
           <View style={styles.row}>
             <View style={styles.halfInput}>
-              <Text style={styles.inputLabel}>Phone</Text>
+              <Text style={styles.inputLabel}>Phone<Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={styles.input}
                 placeholder="Enter Phone"
@@ -195,7 +217,7 @@ const EditProfile = () => {
             </View>
 
             <View style={styles.halfInput}>
-              <Text style={styles.inputLabel}>Pin CODE</Text>
+              <Text style={styles.inputLabel}>Pin CODE<Text style={styles.required}>*</Text></Text>
               <TextInput
                 style={styles.input}
                 placeholder="Enter PIN Code"
@@ -209,69 +231,48 @@ const EditProfile = () => {
 
           {/* Birth Year & Gender in a row */}
           <View style={styles.row}>
-
-          <View style={styles.halfInput}>
-      <Text style={styles.inputLabel}>Birth Year</Text>
-
-      {/* Touchable to Open Date Picker */}
-      <TouchableOpacity onPress={() => setShowPicker(true)}>
-        <TextInput
-          style={styles.input}
-          placeholder="YYYY"
-          placeholderTextColor="#999"
-          keyboardType="number-pad"
-          value={birthYear}
-          editable={false} // Prevents manual input
-        />
-      </TouchableOpacity>
-
-      {/* Date Picker Modal */}
-      {showPicker && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="default"
-          onChange={onChange}
-          maximumDate={new Date()} // Prevents selecting future dates
-        />
-      )}
-    </View>
-
-    <View style={styles.halfInput}>
-      <Text style={styles.inputLabel}>Gender</Text>
-
-      {/* Touchable to Open Picker */}
-      <TouchableOpacity onPress={() => setShowPicker(true)} style={styles.input}>
-        <Text style={{ color: gender ? "#000" : "#999" }}>
-          {gender || "Select Gender"}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Modal for Picker */}
-      <Modal visible={showPicker} transparent animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={gender}
-              onValueChange={(itemValue) => {
-                setGender(itemValue);
-                setShowPicker(false); // Close modal after selection
-              }}
-            >
-              <Picker.Item label="Select Gender" value="" />
-              <Picker.Item label="Male" value="Male" />
-              <Picker.Item label="Female" value="Female" />
-              <Picker.Item label="Other" value="Other" />
-            </Picker>
-          </View>
-        </View>
-      </Modal>
-    </View>
+            <View style={styles.halfInput}>
+              <Text style={styles.inputLabel}>Birth Year<Text style={styles.required}>*</Text></Text>
+              <TouchableOpacity onPress={() => setShowPicker(true)}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="YYYY"
+                  placeholderTextColor="#999"
+                  keyboardType="number-pad"
+                  value={birthYear}
+                  editable={false}
+                />
+              </TouchableOpacity>
+              {showPicker && (
+                <DateTimePicker
+                  value={date}
+                  mode="date"
+                  display="default"
+                  onChange={onChange}
+                  maximumDate={new Date()}
+                />
+              )}
+            </View>
+            <View style={styles.halfInput}>
+              <Text style={styles.inputLabel}>Gender<Text style={styles.required}>*</Text></Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={gender}
+                  onValueChange={(itemValue) => setGender(itemValue)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Select Gender" value="" />
+                  <Picker.Item label="Male" value="male" />
+                  <Picker.Item label="Female" value="female" />
+                  <Picker.Item label="Others" value="others" />
+                </Picker>
+              </View>
+            </View>
           </View>
 
           {/* Bio */}
           <Text style={[styles.sectionTitle, styles.sectionDivider]}>About</Text>
-          <Text style={styles.inputLabel}>Bio</Text>
+          <Text style={styles.inputLabel}>Bio<Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Tell us about yourself"
@@ -286,7 +287,7 @@ const EditProfile = () => {
           <Text style={[styles.sectionTitle, styles.sectionDivider]}>Education</Text>
 
           {/* Qualification */}
-          <Text style={styles.inputLabel}>Highest Qualification</Text>
+          <Text style={styles.inputLabel}>Highest Qualification<Text style={styles.required}>*</Text></Text>
           <TextInput
             style={styles.input}
             placeholder="Enter Qualification"
@@ -305,14 +306,27 @@ const EditProfile = () => {
             onChangeText={setCollege}
           />
 
+          {/* Year of Graduation */}
           <Text style={styles.inputLabel}>Year of Graduation</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Year"
-            placeholderTextColor="#999"
-            value={graduationYear}
-            onChangeText={setGraduationYear}
-          />
+          <TouchableOpacity onPress={() => setShowGraduationPicker(true)}>
+            <TextInput
+              style={styles.input}
+              placeholder="YYYY"
+              placeholderTextColor="#999"
+              keyboardType="number-pad"
+              value={graduationYear}
+              editable={false}
+            />
+          </TouchableOpacity>
+          {showGraduationPicker && (
+            <DateTimePicker
+              value={graduationDate}
+              mode="date"
+              display="default"
+              onChange={onGraduationChange}
+              maximumDate={new Date()} // Prevent selecting future dates
+            />
+          )}
 
           {/* Professional Details Section */}
           <Text style={[styles.sectionTitle, styles.sectionDivider]}>Professional Details</Text>
@@ -340,17 +354,16 @@ const EditProfile = () => {
               />
             </View>
 
-          <View style={styles.halfInput}>
-          <Text style={styles.inputLabel}>Work Experience (in years)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter Years"
-              placeholderTextColor="#999"
-              keyboardType="number-pad"
-              value={workExperience}
-              onChangeText={setWorkExperience}
+            <View style={styles.halfInput}>
+              <Text style={styles.inputLabel}>Work Experience (in years)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter Years"
+                placeholderTextColor="#999"
+                keyboardType="number-pad"
+                value={workExperience}
+                onChangeText={setWorkExperience}
               />
-              {/* Note: Replace this with a Picker if you want a dropdown */}
             </View>
           </View>
 
@@ -381,14 +394,7 @@ const EditProfile = () => {
           <Text style={[styles.sectionTitle, styles.sectionDivider]}>Additional Details</Text>
 
           {/* Resume */}
-          <Text style={styles.inputLabel}>Resume</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter Resume Link or Details"
-            placeholderTextColor="#999"
-            value={resume}
-            onChangeText={setResume}
-          />
+          
 
           {/* Language Proficiency */}
           <Text style={styles.inputLabel}>Language Proficiency</Text>
@@ -432,7 +438,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     paddingVertical: 10,
     paddingHorizontal: 15,
-    height: 60,
+    height: 75,
+    width: '100%',
   },
   backButton: {
     padding: 5,
@@ -441,6 +448,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
+    fontFamily: 'Inter',
   },
   headerActions: {
     flexDirection: 'row',
@@ -455,16 +463,16 @@ const styles = StyleSheet.create({
   profileContainer: {
     alignItems: 'center',
     paddingTop: 20,
-    paddingBottom: 20,
+    paddingBottom: 21,
     backgroundColor: '#fff',
   },
   avatarWrapper: {
     position: 'relative',
-    width: 100,
-    height: 100,
+    width: 87,
+    height: 88,
     borderWidth: 5,
     borderColor: 'green',
-    borderRadius: 70,
+    borderRadius: 44,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
@@ -472,12 +480,12 @@ const styles = StyleSheet.create({
   },
   editIcon: {
     position: 'absolute',
-    bottom: 5,
-    right: 5,
+    bottom: -30,
+    right: -30,
     backgroundColor: 'green',
-    width: 25,
-    height: 25,
-    borderRadius: 14.5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -490,16 +498,18 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     backgroundColor: '#494949',
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    padding: 40,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     paddingBottom: 50,
+    width: '100%',
   },
   sectionTitle: {
     color: 'white',
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: 'bold',
-    marginBottom: 15,
+    fontFamily: 'Inter',
+    marginBottom: 12,
     marginTop: 10,
   },
   sectionDivider: {
@@ -510,19 +520,38 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     color: '#ddd',
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: 'bold',
+    fontFamily: 'Inter',
     marginBottom: 5,
   },
   required: {
-    color: 'red',
+    color: 'green',
   },
   input: {
     backgroundColor: '#ddd',
     color: '#333',
-    padding: 12,
-    borderRadius: 5,
+    padding: 8,
+    borderRadius: 10,
     marginBottom: 15,
-    fontSize: 16,
+    fontSize: 10,
+    fontFamily: 'Inter',
+    width: '100%',
+    height: 33,
+  },
+  pickerContainer: {
+    backgroundColor: '#ddd',
+    borderRadius: 10,
+    marginBottom: 15,
+    height: 33,
+    justifyContent: 'center',
+  },
+  picker: {
+    color: '#999',
+    fontSize: 10,
+    fontFamily: 'Inter',
+    height: 33,
+    width: '100%',
   },
   textArea: {
     height: 100,
@@ -531,19 +560,38 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 20,
   },
   halfInput: {
     width: '48%',
   },
+  uploadButton: {
+    backgroundColor: '#ddd',
+    padding: 8,
+    borderRadius: 10,
+    marginBottom: 15,
+    width: '100%',
+    height: 33,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadButtonText: {
+    color: '#999',
+    fontSize: 10,
+    fontFamily: 'Inter',
+    textAlign: 'center',
+  },
   saveButton: {
-    backgroundColor: 'green',
-    padding: 15,
+    backgroundColor: '#d9d9d9',
+    padding: 0,
     borderRadius: 5,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 45,
+    width: 58,
+    height: 21,
   },
   saveButtonText: {
-    color: 'white',
+    color: 'green',
     fontSize: 16,
     fontWeight: 'bold',
   },
