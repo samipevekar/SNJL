@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   Text, Platform, View, TextInput, Modal, TouchableOpacity, StyleSheet,
-  ScrollView, StatusBar, Alert, Image // Added Image for profile picture
+  ScrollView, StatusBar, Alert, Image, PermissionsAndroid
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { Picker } from "@react-native-picker/picker";
 import Header from "../../components/Header";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import ImagePicker from 'react-native-image-picker'; // Added for image picking
+import { launchImageLibrary } from 'react-native-image-picker'; // Updated import
 
 const EditProfile = () => {
   const [firstName, setFirstName] = useState('');
@@ -37,6 +37,63 @@ const EditProfile = () => {
   const [showGraduationPicker, setShowGraduationPicker] = useState(false);
   const [profileImage, setProfileImage] = useState(null); // State for profile image
 
+  // Request permissions for Android
+  const requestStoragePermission = async () => {
+    if (Platform.OS !== 'android') return true;
+
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission',
+          message: 'This app needs access to your storage to select a profile picture.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        }
+      );
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        console.log('Storage permission granted');
+        return true;
+      } else {
+        console.log('Storage permission denied');
+        Alert.alert('Permission Denied', 'Storage permission is required to select a profile picture.');
+        return false;
+      }
+    } catch (err) {
+      console.warn('Error requesting storage permission:', err);
+      return false;
+    }
+  };
+
+  const handleImagePick = async () => {
+    // Request permissions before launching the image picker
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) return;
+
+    const options = {
+      mediaType: 'photo',
+      quality: 1,
+      maxWidth: 500,
+      maxHeight: 500,
+      includeBase64: false,
+    };
+
+    launchImageLibrary(options, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.errorCode) {
+        console.log('ImagePicker Error: ', response.errorCode, response.errorMessage);
+        Alert.alert('Error', `Failed to pick image: ${response.errorMessage}`);
+      } else if (response.assets && response.assets.length > 0) {
+        const uri = response.assets[0].uri;
+        console.log('Selected image URI:', uri);
+        setProfileImage(uri);
+        Alert.alert('Success', 'Profile picture selected!');
+      }
+    });
+  };
+
   const onChange = (event, selectedDate) => {
     setShowPicker(Platform.OS === "ios");
     if (selectedDate) {
@@ -51,29 +108,6 @@ const EditProfile = () => {
       setGraduationDate(selectedDate);
       setGraduationYear(selectedDate.getFullYear().toString());
     }
-  };
-
-  const handleImagePick = () => {
-    const options = {
-      title: 'Select Profile Picture',
-      storageOptions: {
-        skipBackup: true,
-        path: 'images',
-      },
-    };
-
-    ImagePicker.showImagePicker(options, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.error) {
-        Alert.alert('Error', 'An error occurred while picking the image.');
-        console.log('ImagePicker Error: ', response.error);
-      } else {
-        // Set the image URI to state
-        setProfileImage(response.uri);
-        Alert.alert('Success', 'Profile picture selected!');
-      }
-    });
   };
 
   const handleSave = () => {
@@ -113,7 +147,7 @@ const EditProfile = () => {
       resume: resume ? resume.name : null,
       languageProficiency,
       achievements,
-      profileImage, // Include profile image in the log
+      profileImage,
     });
 
     Alert.alert('Success', 'Profile updated successfully!');
@@ -134,13 +168,14 @@ const EditProfile = () => {
               <Image
                 source={{ uri: profileImage }}
                 style={styles.avatarImage}
+                onError={(e) => console.log('Image load error:', e.nativeEvent.error)}
               />
             ) : (
               <Icon name="user" size={40} color="#333" />
             )}
             <TouchableOpacity
               style={styles.editIcon}
-              onPress={handleImagePick} // Trigger image picker on press
+              onPress={handleImagePick}
             >
               <Icon name="pencil" size={10} color="black" />
             </TouchableOpacity>
@@ -436,13 +471,13 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
-    backgroundColor: '#494949', // Grey background for the entire scroll view
+    backgroundColor: '#494949',
   },
   profileContainer: {
     alignItems: 'center',
     paddingTop: 20,
     paddingBottom: 21,
-    backgroundColor: '#fff', // White background for the top section
+    backgroundColor: '#fff',
   },
   avatarWrapper: {
     position: 'relative',
@@ -459,11 +494,11 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 44, // Ensure the uploaded image is circular
+    borderRadius: 44,
   },
   editIcon: {
     position: 'absolute',
-    bottom: 0, // Adjusted to position at the bottom-right
+    bottom: 0,
     right: 0,
     backgroundColor: 'green',
     width: 20,
@@ -480,13 +515,13 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   formContainer: {
-    backgroundColor: '#494949', // Grey background for the form container
+    backgroundColor: '#494949',
     padding: 40,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingBottom: 50,
     width: '100%',
-    marginTop: -20, // Pull the form container up to overlap with the profile section
+    marginTop: -20,
   },
   sectionTitle: {
     color: 'white',

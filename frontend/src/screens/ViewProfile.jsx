@@ -5,8 +5,7 @@ import Header from '../components/Header'
 export default function ViewProfile() {
   return (
     <View>
-    <Header/>
-      <Text>ViewProfile</Text>
+      <Header/>
     </View>
   )
 }
