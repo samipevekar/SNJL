@@ -138,7 +138,7 @@ const RandomUserScreen = ({ navigation }) => {
                 <TouchableOpacity
                   style={styles.viewProfileButton}
                   onPress={() =>
-                    navigation.navigate("ChatScreen", { user: item })
+                    navigation.navigate("ViewProfile", { user: item })
                   }
                 >
                   <Text style={styles.viewProfileButtonText}>

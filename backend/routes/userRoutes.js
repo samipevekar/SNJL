@@ -1,8 +1,11 @@
 import { Router } from "express";
-import { forgotPassword, getUser, loginUser, logoutUser , registerUser, resetPassword, userLoginWithGoogle, verifyResetPasswordCode, verifyUser } from "../controllers/userController.js";
+import { forgotPassword, getUser, loginUser, logoutUser , registerUser, resetPassword, userLoginWithGoogle, verifyResetPasswordCode, verifyUser,completeProfile } from "../controllers/userController.js";
 import { isLoggedIn } from "../middlewares/employerAuthMiddleware.js";
+import { isUserLoggedIn } from "../middlewares/userAuthMiddleware.js";
+import multer from "multer";
 
 const userRoutes = Router();
+const upload = multer({ dest: "uploads/" }); 
 
 // Register a new worker
 userRoutes.post("/register",registerUser );
@@ -25,5 +28,6 @@ userRoutes.post('/google', userLoginWithGoogle)
 userRoutes.post("/forgot-password", forgotPassword);
 userRoutes.post("/verify-reset-code", verifyResetPasswordCode);
 userRoutes.post("/reset-password", resetPassword);
+userRoutes.put("/complete-profile", isUserLoggedIn, upload.single("resume"), completeProfile);
 
 export default userRoutes;

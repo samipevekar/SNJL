@@ -50,10 +50,12 @@ console.log(req.body)
     // Generate a verification code
     const verificationCode = generateVerificationCode();
     const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
+          
     // Store the unverified worker in temporary storage
     unverifiedWorkers.set(email, {
       name,
+      firstName: "", 
+      lastName: "",  
       email,
       phone,
       password,
@@ -101,17 +103,18 @@ export const verifyUser = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(workerData.password, salt);
 
-    // Create the worker in the database
-    const newWorker = new User({
-      name: workerData.name,
-      email: workerData.email || null,
-      phone: workerData.phone || undefined,
-      password: workerData.password,
-      // profileImage: profileImageUrl,
-      isPhoneVerified: true,
-      verificationCode: null,
+   // Create the user in the database
+const newWorker = new User({
+  name: workerData.name,
+  firstName: "", // Empty initially
+  lastName: "",  // Empty initially
+  email: workerData.email || null,
+  phone: workerData.phone || undefined,
+  password: hashedPassword,
+  isPhoneVerified: true,
+  verificationCode: null,
+});
 
-    });
 
     await newWorker.save();
 
@@ -350,6 +353,56 @@ export const resetPassword = async (req, res) => {
     res.status(200).json({ success: true, message: "Password reset successfully" });
   } catch (error) {
     console.error("Error in resetPassword:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+//updating the profile after user sin up 
+export const completeProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const {
+      firstName, lastName, username, address, pinCode, birthDate, gender, bio,
+      highestQualification, college, graduationYear, currentCompany,
+      jobTitle, workExperience, skills, portfolio, languageProficiency, achievements
+    } = req.body;
+
+    if (firstName && lastName) {
+      user.firstName = firstName;
+      user.lastName = lastName;
+      user.name = `${firstName} ${lastName}`; // Auto-update name field
+    }
+
+    Object.assign(user, {
+      username,
+      address,
+      pinCode,
+      birthDate,
+      gender,
+      bio,
+      highestQualification,
+      college,
+      graduationYear,
+      currentCompany,
+      jobTitle,
+      workExperience,
+      skills,
+      portfolio,
+      languageProficiency,
+      achievements,
+    });
+
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Profile updated successfully", user });
+  } catch (error) {
+    console.error("Error updating profile:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

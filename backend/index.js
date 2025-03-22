@@ -15,7 +15,7 @@ import { initializeSocket } from './utils/socket.js';
 import ratingRoutes from './routes/ratingRoute.js'
 // import {app, server } from './socket/socket.js';
 import randomDataRoutes from './routes/randomDataRoutes.js';
-import http  from 'http'
+import http  from 'http';
 config();
 const app = express();
 const server = http.createServer(app);
