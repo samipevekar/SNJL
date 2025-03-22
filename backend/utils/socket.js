@@ -1,4 +1,3 @@
-// socket.js
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import User from '../models/userModel.js';
@@ -19,10 +18,19 @@ export const initializeSocket = (server) => {
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
-      if (!token) throw new Error('Authentication required');
+      if (!token) {
+        console.error('No token provided in handshake.auth.token');
+        return next(new Error('Authentication required'));
+      }
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (!decoded.id) {
+        console.error('Invalid token: No id found in decoded token', decoded);
+        return next(new Error('Invalid token'));
+      }
+
       socket.user = { id: decoded.id, modelType: decoded.modelType || decoded.role };
+      console.log(`Socket authenticated for user: ${socket.user.id} (${socket.user.modelType})`);
       next();
     } catch (error) {
       console.error('Socket auth error:', error.message);
@@ -31,12 +39,20 @@ export const initializeSocket = (server) => {
   });
 
   io.on('connection', async (socket) => {
+    // If authentication failed, socket.user will be undefined, so disconnect the socket
+    if (!socket.user) {
+      console.error('Connection rejected: socket.user is undefined');
+      socket.disconnect(true);
+      return;
+    }
+
     try {
       const { id, modelType } = socket.user;
       const key = `${modelType}_${id}`;
 
       const user = modelType === 'User' ? await User.findById(id).lean() : await Recruiter.findById(id).lean();
       if (!user) {
+        console.error(`User not found: ${key}`);
         socket.disconnect(true);
         return;
       }
@@ -135,6 +151,7 @@ export const initializeSocket = (server) => {
         const { receiverId, receiverType } = data;
         const receiverKey = `${receiverType}_${receiverId}`;
         const receiverSockets = activeSockets.get(receiverKey) || [];
+        
         receiverSockets.forEach((receiverSocket) => {
           receiverSocket.emit('typing', { senderId: socket.user.id, senderType: socket.user.modelType });
         });

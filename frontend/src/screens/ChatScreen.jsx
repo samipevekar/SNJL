@@ -114,7 +114,6 @@ export default function ChatScreen({ route, navigation }) {
           (normalizedMessage.sender._id === user._id && normalizedMessage.receiver._id === currentUser._id) ||
           (normalizedMessage.sender._id === currentUser._id && normalizedMessage.receiver._id === user._id)
         ) {
-          // Check if the message already exists to avoid duplicates
           const messageExists = messages.some((msg) => msg._id === normalizedMessage._id);
           if (!messageExists) {
             dispatch(addMessage(normalizedMessage));
@@ -150,7 +149,7 @@ export default function ChatScreen({ route, navigation }) {
         socket.off('typing');
       };
     }
-  }, [currentUser?._id, user?._id, socket, socketReady, dispatch, messages]);
+  }, [currentUser?._id, user?._id, socket, socketReady, dispatch, messages]); // Added socketReady as a dependency
 
   // Handle sending a message
   const handleSendMessage = useCallback(() => {
@@ -179,8 +178,6 @@ export default function ChatScreen({ route, navigation }) {
       .unwrap()
       .then((result) => {
         console.log('Send message success:', result);
-        // Do not add the message here; wait for the server to emit 'newMessage'
-        
         flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       })
       .catch((err) => {
