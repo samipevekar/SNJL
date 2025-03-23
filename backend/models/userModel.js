@@ -88,6 +88,8 @@ const userSchema = new mongoose.Schema({
 }
 });
 
+userSchema.index({ name: "text" });
+
 userSchema.pre("save", function (next) {
   if (this.firstName && this.lastName) {
     this.name = `${this.firstName} ${this.lastName}`;

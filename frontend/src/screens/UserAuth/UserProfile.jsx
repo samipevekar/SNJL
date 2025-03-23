@@ -11,6 +11,7 @@ import {
   PanResponder,
   FlatList,
 } from "react-native";
+
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import Header from "../../components/Header";
@@ -22,6 +23,7 @@ import MockUserProfile from "../../components/MockUserProfile";
 import { getUserData } from "../../storage/userData";
 import { fetchSavedPosts, fetchUserPosts } from "../../store/slices/postSlice";
 import PostReviewTab from "../../components/PostReviewTab";
+import Footer from "../../components/Footer";
 
 const { width, height } = Dimensions.get("window");
 
@@ -30,6 +32,9 @@ const HEADER_HEIGHT = 50 * scale; // Estimated height of Header component; adjus
 const CONTENT_MARGIN = 16 * scale; // Consistent margin for responsiveness
 
 export default function UserProfile({ navigation }) {
+  const [searchVisible, setSearchVisible] = useState(false);
+  const inputAnim = useRef(new Animated.Value(0)).current;
+
   const theme = useSelector((state) => state.theme.mode);
   const [activeTab, setActiveTab] = useState("posts");
   const [isSticky, setIsSticky] = useState(false);
@@ -47,7 +52,14 @@ export default function UserProfile({ navigation }) {
   // console.log("post",postData)
 
   
-
+const toggleSearch = () => {
+    setSearchVisible(!searchVisible);
+    Animated.timing(inputAnim, {
+      toValue: searchVisible ? 0 : 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
 
   const avatarUri = typeof userData.profileImage === "string" && userData.profileImage.startsWith("http")
       ? userData.profileImage
@@ -167,7 +179,7 @@ export default function UserProfile({ navigation }) {
         { backgroundColor: theme === "light" ? "#fff" : "#000" },
       ]}
     >
-      <Header />
+     <Header searchVisible={searchVisible} inputAnim={inputAnim} toggleSearch={toggleSearch} />
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={styles.scrollContent}
@@ -451,7 +463,7 @@ export default function UserProfile({ navigation }) {
       >
         <Icon name="add" size={30 * scale} color="#fff" />
       </TouchableOpacity>
-      
+      <Footer toggleSearch={toggleSearch} />
     </View>
   );
 }

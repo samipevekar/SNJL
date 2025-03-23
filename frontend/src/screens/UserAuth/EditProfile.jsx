@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
+
+import React, { useState, useRef, useEffect } from "react";
 import {
   Text, Platform, View, TextInput, Modal, TouchableOpacity, StyleSheet,
-  ScrollView, StatusBar, Alert, Image, PermissionsAndroid
+  ScrollView, StatusBar, Alert, Image, PermissionsAndroid,  Animated,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { Picker } from "@react-native-picker/picker";
 import Header from "../../components/Header";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { launchImageLibrary } from 'react-native-image-picker'; // Updated import
+import { launchImageLibrary } from 'react-native-image-picker';
+import Footer from '../../components/Footer';
+ // Updated import
 
 const EditProfile = () => {
+  const [searchVisible, setSearchVisible] = useState(false);
+  const inputAnim = useRef(new Animated.Value(0)).current;
+
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
@@ -37,7 +44,74 @@ const EditProfile = () => {
   const [showGraduationPicker, setShowGraduationPicker] = useState(false);
   const [profileImage, setProfileImage] = useState(null); // State for profile image
 
-  // Request permissions for Android
+  const toggleSearch = () => {
+      setSearchVisible(!searchVisible);
+      Animated.timing(inputAnim, {
+        toValue: searchVisible ? 0 : 1,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    };
+    
+  const handleFilePick = async () => {
+    try {
+      // Request storage permission (optional, only for Android)
+      if (Platform.OS === 'android') {
+        const hasPermission = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
+        if (!hasPermission) {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+            {
+              title: 'Storage Permission',
+              message: 'This app needs access to your storage to upload a resume.',
+              buttonNeutral: 'Ask Me Later',
+              buttonNegative: 'Cancel',
+              buttonPositive: 'OK',
+            }
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            Alert.alert('Permission Denied', 'Storage permission is required to upload a resume.');
+            return;
+          }
+        }
+      }
+  
+      // Open document picker to select a resume
+      const result = await DocumentPicker.pick({
+        type: [
+          DocumentPicker.types.pdf,    // Allow PDF files
+          DocumentPicker.types.doc,    // Allow DOC files
+          DocumentPicker.types.docx,   // Allow DOCX files
+        ],
+      });
+  
+      // Check if a file was selected
+      if (result && result.length > 0) {
+        const selectedFile = result[0];
+        console.log('Selected resume:', selectedFile);
+  
+        // Update the resume state with the selected file
+        setResume({
+          uri: selectedFile.uri,
+          type: selectedFile.type,
+          name: selectedFile.name,
+          size: selectedFile.size,
+        });
+  
+        Alert.alert('Success', 'Resume selected successfully!');
+      }
+    } catch (err) {
+      // Handle cancellation or errors
+      if (DocumentPicker.isCancel(err)) {
+        console.log('User cancelled the document picker');
+      } else {
+        console.error('DocumentPicker Error:', err);
+        Alert.alert('Error', 'Failed to pick resume file. Please try again.');
+      }
+    }
+  };
+
+
   const requestStoragePermission = async () => {
     if (Platform.OS !== 'android') return true;
 
@@ -67,7 +141,7 @@ const EditProfile = () => {
   };
 
   const handleImagePick = async () => {
-    // Request permissions before launching the image picker
+    
     const hasPermission = await requestStoragePermission();
     if (!hasPermission) return;
 
@@ -158,7 +232,8 @@ const EditProfile = () => {
       <StatusBar backgroundColor="#000" barStyle="light-content" />
 
       {/* Header */}
-      <Header />
+
+      <Header searchVisible={searchVisible} inputAnim={inputAnim} toggleSearch={toggleSearch} />     
 
       <ScrollView style={styles.scrollContainer}>
         {/* Profile Section */}
@@ -434,6 +509,9 @@ const EditProfile = () => {
           {/* Additional Details Section */}
           <Text style={[styles.sectionTitle, styles.sectionDivider]}>Additional Details</Text>
 
+          {/* Resume */}
+
+
           {/* Language Proficiency */}
           <Text style={styles.inputLabel}>Language Proficiency</Text>
           <TextInput
@@ -460,6 +538,8 @@ const EditProfile = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Footer toggleSearch={toggleSearch} />
     </View>
   );
 };
@@ -557,6 +637,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     width: '100%',
     height: 33,
+  },
+  inputText: { // New style for text inside TouchableOpacity
+    color: '#999', // Matches placeholderTextColor of TextInput
+    fontSize: 10,
+    fontFamily: 'Inter',
   },
   pickerContainer: {
     backgroundColor: '#ddd',

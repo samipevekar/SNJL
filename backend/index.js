@@ -13,6 +13,7 @@ import friendRoutes from './routes/friendRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import { initializeSocket } from './utils/socket.js';
 import ratingRoutes from './routes/ratingRoute.js'
+import SearchRoutes from './routes/searchRoutes.js';
 // import {app, server } from './socket/socket.js';
 import randomDataRoutes from './routes/randomDataRoutes.js';
 import http  from 'http';
@@ -54,7 +55,7 @@ app.use('/api/posts', postRoutes);
 app.use("/api/randomData",randomDataRoutes)
 
 
-
+app.use("/api/search", SearchRoutes);
 // Handle 404 routes
 app.all('*', (req, res) => {
     res.status(404).send('OPPS!! 404 page not found');
