@@ -26,6 +26,7 @@
     "react": "19.0.0",
     "react-hook-form": "^7.54.2",
     "react-native": "0.78.0",
+    "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.24.0",
     "react-native-image-picker": "^8.2.0",
     "react-native-pager-view": "^6.7.0",

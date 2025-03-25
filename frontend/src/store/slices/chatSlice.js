@@ -1,4 +1,3 @@
-// store/slices/chatSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axiosInstance from '../../components/Helpers/axiosinstance';
 import { getToken } from '../../storage/AuthStorage';
@@ -25,17 +24,40 @@ export const fetchChatHistory = createAsyncThunk(
   }
 );
 
-// Thunk to send a message
+// Thunk to send a message (supports both text and media)
 export const sendMessage = createAsyncThunk(
   'chat/sendMessage',
-  async ({ senderId, senderType, receiverId, receiverType, message }, { rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
       const token = await getToken();
-      const response = await axiosInstance.post(
-        '/chat/send',
-        { senderId, senderType, receiverId, receiverType, message },
-        { headers: { Authorization: `token ${token}` } }
-      );
+      let response;
+
+
+      console.log('Send message payload:', payload);
+      // Check if the payload is FormData (for media messages) or a regular object (for text messages)
+      if (payload instanceof FormData) {
+        // For media messages (FormData)
+        response = await axiosInstance.post('/chat/send', payload, {
+          headers: {
+            Authorization: `token ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        // For text messages (JSON)
+        const { receiverId, receiverType, message } = payload;
+        response = await axiosInstance.post(
+          '/chat/send',
+          { receiverId, receiverType, message },
+          {
+            headers: {
+              Authorization: `token ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+
       console.log('Send message response:', response.data);
       return response.data.message;
     } catch (error) {
@@ -105,8 +127,6 @@ export const markMessageAsSeen = createAsyncThunk(
   }
 );
 
-
-
 export const fetchAllChats = createAsyncThunk(
   'chat/fetchAllChats',
   async (_, { rejectWithValue }) => {
@@ -133,7 +153,7 @@ const chatSlice = createSlice({
     loading: false,
     sendingMessage: false,
     markingMessageAsSeen: false,
-    acceptingInvite: false, 
+    acceptingInvite: false,
     error: null,
     inviteStatus: null,
     typingStatus: false,
@@ -171,26 +191,26 @@ const chatSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-    .addCase(fetchAllChats.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    })
-    .addCase(fetchAllChats.fulfilled, (state, action) => {
-      state.loading = false;
-      state.chats = action.payload;
-      console.log('All chats updated in state:', state.chats.length, 'chats');
-    })
-    .addCase(fetchAllChats.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload;
-    })
+      .addCase(fetchAllChats.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllChats.fulfilled, (state, action) => {
+        state.loading = false;
+        state.chats = action.payload;
+        console.log('All chats updated in state:', state.chats.length, 'chats');
+      })
+      .addCase(fetchAllChats.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       .addCase(fetchChatHistory.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchChatHistory.fulfilled, (state, action) => {
         state.loading = false;
-        state.messages = [...state.messages,...action.payload.messages];
+        state.messages = [...state.messages, ...action.payload.messages];
         state.pagination = action.payload.pagination;
         console.log('Chat history updated in state:', state.messages.length, 'messages');
       })
@@ -204,6 +224,7 @@ const chatSlice = createSlice({
       })
       .addCase(sendMessage.fulfilled, (state, action) => {
         state.sendingMessage = false;
+        // The message is already added via socket, so no need to add it here
       })
       .addCase(sendMessage.rejected, (state, action) => {
         state.sendingMessage = false;
@@ -222,7 +243,7 @@ const chatSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(acceptInvite.pending, (state) => {
-        state.loading = true;
+        state.acceptingInvite = true;
         state.error = null;
       })
       .addCase(acceptInvite.fulfilled, (state, action) => {

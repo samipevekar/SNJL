@@ -5,6 +5,8 @@ import Invitation from '../models/invitationModel.js';
 import UnreadMessage from '../models/unreadMessageModel.js';
 import { activeSockets, getIO } from '../utils/socket.js';
 import mongoose from 'mongoose';
+import path from 'path';
+import { uploadOnCloudinary } from '../utils/cloudinary.js';
 
 // Helper function to get user details
 const getUserDetails = async (id, modelType) => {
@@ -113,10 +115,20 @@ export const sendMessage = async (req, res) => {
     const { receiverId, receiverType, message } = req.body;
     const senderId = req.user.id;
     const senderType = req.user.role;
-    console.log("receiverId:", receiverId, receiverType, senderId, senderType);
+    const file = req.file;
 
-    if (!receiverId || !message) {
-      return res.status(400).json({ success: false, message: 'Receiver ID and message are required' });
+    console.log("Request body:", req.body);
+    console.log("File:", file);
+    console.log("receiverId:", receiverId, "receiverType:", receiverType, "senderId:", senderId, "senderType:", senderType);
+
+    // Validate receiverId
+    if (!receiverId || !receiverType) {
+      return res.status(400).json({ success: false, message: 'Receiver ID and receiver type are required' });
+    }
+
+    // Validate that either message or file is provided
+    if (!message && !file) {
+      return res.status(400).json({ success: false, message: 'Either a message or media file is required' });
     }
 
     // Validate receiver
@@ -143,14 +155,49 @@ export const sendMessage = async (req, res) => {
       }
     }
 
+    let mediaUrl = null;
+    let mediaType = null;
+
+    // Handle file upload if present
+    if (file) {
+      const localFilePath = file.path;
+      const ext = path.extname(file.originalname).toLowerCase();
+
+      // Determine media type based on file extension
+      if (['.jpg', '.jpeg', '.png', '.gif', '.bmp'].includes(ext)) {
+        mediaType = 'image';
+      } else if (['.pdf'].includes(ext)) {
+        mediaType = 'pdf';
+      } else if (['.doc', '.docx', '.txt', '.ppt', '.xlsx', '.csv'].includes(ext)) {
+        mediaType = 'doc';
+      } else if (['.mp4', '.mkv', '.avi', '.mov'].includes(ext)) {
+        mediaType = 'video';
+      } else if (['.mp3', '.wav', '.m4a', '.flac'].includes(ext)) {
+        mediaType = 'audio';
+      } else {
+        mediaType = 'other';
+      }
+
+      // Upload file to Cloudinary
+      const uploadResult = await uploadOnCloudinary(localFilePath, mediaType);
+      if (!uploadResult) {
+        return res.status(500).json({ success: false, message: 'Failed to upload media to Cloudinary' });
+      }
+      mediaUrl = uploadResult.url;
+    }
+
     // Create and save the new message
     const newMessage = new Message({
       sender: senderId,
       senderModel: senderType,
       receiver: receiverId,
       receiverModel: receiverType,
-      message,
+      message: message || '', // Allow empty message if media is present
+      media: mediaUrl,
+      mediaType: mediaType,
     });
+
+    console.log("newMessage:", newMessage);
     await newMessage.save();
 
     // Get sender details
@@ -158,9 +205,9 @@ export const sendMessage = async (req, res) => {
 
     // Check if receiver is online and emit the message
     const receiverKey = `${receiverType}_${receiverId}`;
-    console.log("receiverKey", receiverKey);
+    console.log("receiverKey:", receiverKey);
     const receiverSockets = activeSockets.get(receiverKey) || [];
-    console.log("receiverSockets", receiverSockets);
+    console.log("receiverSockets:", receiverSockets);
 
     if (receiverSockets.length === 0) {
       // Receiver is offline, save as unread message
@@ -181,7 +228,7 @@ export const sendMessage = async (req, res) => {
     } else {
       // Receiver is online, emit to all their sockets
       receiverSockets.forEach((socket) => {
-        console.log("socket", socket);
+        console.log("socket:", socket.id);
         socket.emit('newMessage', {
           ...newMessage.toObject(),
           senderName: senderDetails.name,
@@ -395,7 +442,7 @@ export const getAllChats = async (req, res) => {
         },
       },
       {
-        $sort: { timestamp: -1 }, // Sort by timestamp to get the most recent message first
+        $sort: { timestamp: -1 },
       },
       {
         $group: {
@@ -412,15 +459,24 @@ export const getAllChats = async (req, res) => {
         },
       },
       {
-        $sort: { latestTimestamp: -1 }, // Sort conversations by the latest message timestamp
+        $sort: { latestTimestamp: -1 },
       },
     ]);
 
-    // Fetch user details for each conversation partner
+    // Fetch user details and unread message count for each conversation partner
     const chats = await Promise.all(
       conversations.map(async (conversation) => {
         const { userId: otherUserId, userType: otherUserType } = conversation._id;
         const userDetails = await getUserDetails(otherUserId, otherUserType);
+        
+        // <span style="color: blue">Count unread messages for this conversation</span>
+        const unreadCount = await UnreadMessage.countDocuments({
+          user: userId,
+          toModel: userType,
+          from: otherUserId,
+          fromModel: otherUserType,
+        });
+
         return {
           user: {
             _id: otherUserId,
@@ -431,6 +487,8 @@ export const getAllChats = async (req, res) => {
           latestMessage: conversation.latestMessage,
           latestTimestamp: conversation.latestTimestamp,
           latestMessageId: conversation.latestMessageId,
+          // <span style="color: blue">Add unreadCount to the chat object</span>
+          unreadCount,
         };
       })
     );
