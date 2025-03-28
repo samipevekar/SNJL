@@ -12,7 +12,7 @@ import {
   Platform,
   PermissionsAndroid,
   Linking,
-  ActivityIndicator, // Already imported
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Header from '../components/Header';
@@ -35,7 +35,7 @@ import { format } from 'date-fns';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 
 export default function ChatScreen({ route, navigation }) {
-  const user = route.params?.user; // Receiver user data
+  const user = route.params?.user;
   const dispatch = useDispatch();
   const { socket, socketReady, setUser } = useSocket();
   const { messages, loading, error, inviteStatus, typingStatus, pagination } = useSelector(
@@ -47,17 +47,16 @@ export default function ChatScreen({ route, navigation }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [messageText, setMessageText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedMedia, setSelectedMedia] = useState(null); // For media preview
-  const [isMediaUploading, setIsMediaUploading] = useState(false); // New state for media upload loading
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [isMediaUploading, setIsMediaUploading] = useState(false);
   const theme = useSelector((state) => state.theme.mode);
   const flatListRef = useRef(null);
   const [page, setPage] = useState(1);
-  const [receiver, setReceiver] = useState(null); // Persist receiver data in state
+  const [receiver, setReceiver] = useState(null);
 
   const hasValidProfileImage = receiver?.profileImage && receiver?.profileImage.startsWith('https');
   const isReceiverRecruiter = receiver?.type === 'Recruiter';
 
-  // Function to save receiver data to AsyncStorage
   const saveReceiverToStorage = async (receiverData) => {
     if (!receiverData?._id) {
       console.error('Cannot save receiver to AsyncStorage: receiverData._id is missing');
@@ -72,7 +71,6 @@ export default function ChatScreen({ route, navigation }) {
     }
   };
 
-  // Function to retrieve receiver data from AsyncStorage
   const getReceiverFromStorage = async (receiverId) => {
     if (!receiverId) {
       console.error('Cannot retrieve receiver from AsyncStorage: receiverId is missing');
@@ -94,7 +92,6 @@ export default function ChatScreen({ route, navigation }) {
     }
   };
 
-  // Persist receiver data and load from AsyncStorage if needed
   useEffect(() => {
     const initializeReceiver = async () => {
       let receiverId = user?._id;
@@ -124,7 +121,6 @@ export default function ChatScreen({ route, navigation }) {
     initializeReceiver();
   }, [user, route.params, navigation]);
 
-  // Fetch current user data on component mount
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -144,7 +140,7 @@ export default function ChatScreen({ route, navigation }) {
     };
   }, [dispatch, setUser]);
 
-  // Fetch chat history on initial load (page 1)
+  // Fetch initial chat history and mark all unread messages as seen
   useEffect(() => {
     if (currentUser?._id && receiver?._id) {
       console.log('Fetching initial chat history for page 1');
@@ -152,6 +148,7 @@ export default function ChatScreen({ route, navigation }) {
         .unwrap()
         .then((result) => {
           console.log('Initial chat history fetched:', result);
+          markAllUnreadMessagesAsSeen(result.messages);
         })
         .catch((err) => {
           console.error('Error fetching initial chat history:', err);
@@ -159,7 +156,7 @@ export default function ChatScreen({ route, navigation }) {
     }
   }, [currentUser?._id, receiver?._id, dispatch]);
 
-  // Fetch more messages when page changes (for pagination)
+  // Fetch more chat history and mark unread messages as seen for subsequent pages
   useEffect(() => {
     if (page > 1 && currentUser?._id && receiver?._id) {
       console.log('Fetching chat history for page:', page);
@@ -167,6 +164,7 @@ export default function ChatScreen({ route, navigation }) {
         .unwrap()
         .then((result) => {
           console.log('Chat history fetched for page:', page, result);
+          markAllUnreadMessagesAsSeen(result.messages);
         })
         .catch((err) => {
           console.error('Error fetching chat history for page:', page, err);
@@ -174,7 +172,7 @@ export default function ChatScreen({ route, navigation }) {
     }
   }, [page, currentUser?._id, receiver?._id, dispatch]);
 
-  // Set up Socket.IO listeners
+  // Socket listeners
   useEffect(() => {
     if (currentUser?._id && receiver?._id && socket && socketReady) {
       console.log('Setting up socket listeners for user:', receiver._id);
@@ -193,6 +191,7 @@ export default function ChatScreen({ route, navigation }) {
           const messageExists = messages.some((msg) => msg._id === normalizedMessage._id);
           if (!messageExists) {
             dispatch(addMessage(normalizedMessage));
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
           }
           if (normalizedMessage.receiver._id === currentUser._id && normalizedMessage.status !== 'seen') {
             dispatch(markMessageAsSeen({ messageId: normalizedMessage._id }))
@@ -227,7 +226,18 @@ export default function ChatScreen({ route, navigation }) {
     }
   }, [currentUser?._id, receiver?._id, socket, socketReady, dispatch, messages]);
 
-  // Request permissions for camera and storage
+  // Function to mark all unread messages as seen
+  const markAllUnreadMessagesAsSeen = (fetchedMessages) => {
+    const unreadMessages = fetchedMessages.filter(
+      (msg) => msg.receiver._id === currentUser._id && msg.status === 'unread'
+    );
+    unreadMessages.forEach((msg) => {
+      dispatch(markMessageAsSeen({ messageId: msg._id }))
+        .unwrap()
+        .catch((err) => console.error('Failed to mark message as seen:', err));
+    });
+  };
+
   const requestMediaPermissions = async () => {
     if (Platform.OS !== 'android') {
       console.log('Not Android, skipping permission check');
@@ -307,7 +317,6 @@ export default function ChatScreen({ route, navigation }) {
     }
   };
 
-  // Handle media selection from gallery or camera
   const handleAddMedia = async (source) => {
     console.log('handleAddMedia called with source:', source);
     const hasPermission = await requestMediaPermissions();
@@ -346,17 +355,13 @@ export default function ChatScreen({ route, navigation }) {
       console.log('Launching camera');
       launchCamera(options, callback);
     }
-
-    // dispatch(fetchChatHistory({ senderId: currentUser._id, receiverId: receiver._id, page }))
   };
 
-  // Cancel the selected media
   const cancelMediaSelection = () => {
     setSelectedMedia(null);
-    setIsMediaUploading(false); // Reset uploading state
+    setIsMediaUploading(false);
   };
 
-  // Handle sending a message (text, media, or both)
   const handleSendMessage = useCallback(() => {
     setMessageText('');
     console.log('Send button pressed, messageText:', messageText, 'selectedMedia:', selectedMedia);
@@ -373,9 +378,8 @@ export default function ChatScreen({ route, navigation }) {
       return;
     }
 
-    // If media is selected, send as FormData
     if (selectedMedia) {
-      setIsMediaUploading(true); // Start loading for media upload
+      setIsMediaUploading(true);
       const formData = new FormData();
       formData.append('receiverId', receiver._id);
       formData.append('receiverType', receiver.type || 'User');
@@ -393,16 +397,15 @@ export default function ChatScreen({ route, navigation }) {
           console.log('Send media success:', result);
           setSelectedMedia(null);
           // setMessageText('');
-          setIsMediaUploading(false); // Stop loading on success
+          setIsMediaUploading(false);
           flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
         })
         .catch((err) => {
           console.error('Send media error:', err);
           Alert.alert('Error', err || 'Failed to send media');
-          setIsMediaUploading(false); // Stop loading on error
+          setIsMediaUploading(false);
         });
     } else {
-      // If no media, send as text message (message is required)
       const messageData = {
         receiverId: receiver._id,
         receiverType: receiver.type || 'User',
@@ -414,7 +417,7 @@ export default function ChatScreen({ route, navigation }) {
         .unwrap()
         .then((result) => {
           console.log('Send message success:', result);
-          // setMessageText('');
+          setMessageText('');
           flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
         })
         .catch((err) => {
@@ -435,7 +438,6 @@ export default function ChatScreen({ route, navigation }) {
     }
   }, [messageText, currentUser, receiver, dispatch, selectedMedia]);
 
-  // Handle sending an invitation
   const handleSendInvite = () => {
     if (!receiver?._id) {
       console.log('Missing receiver ID, cannot send invite');
@@ -461,7 +463,6 @@ export default function ChatScreen({ route, navigation }) {
       });
   };
 
-  // Handle accepting an invitation
   const handleAcceptInvite = () => {
     if (inviteStatus?.invitationId) {
       console.log('Accepting invite:', inviteStatus.invitationId);
@@ -480,7 +481,6 @@ export default function ChatScreen({ route, navigation }) {
     }
   };
 
-  // Handle typing indicator (debounced for optimization)
   const handleTyping = useCallback(
     debounce(() => {
       if (isTyping && currentUser?._id && receiver?._id && socket && socketReady) {
@@ -495,7 +495,6 @@ export default function ChatScreen({ route, navigation }) {
     [isTyping, currentUser?._id, receiver?._id, socket, socketReady]
   );
 
-  // Debounce function for typing optimization
   function debounce(func, wait) {
     let timeout;
     return function (...args) {
@@ -504,7 +503,6 @@ export default function ChatScreen({ route, navigation }) {
     };
   }
 
-  // Load more messages for pagination
   const loadMoreMessages = () => {
     if (pagination && page < pagination.totalPages) {
       console.log('Loading more messages, next page:', page + 1);
@@ -512,7 +510,6 @@ export default function ChatScreen({ route, navigation }) {
     }
   };
 
-  // Render each message with media, text, seen status, timestamp, and profile image
   const renderMessage = ({ item }) => {
     console.log("Rendering message:", item);
     const isSender = item.sender._id === currentUser?._id;
@@ -521,8 +518,8 @@ export default function ChatScreen({ route, navigation }) {
     const formattedTime = item.timestamp
       ? format(new Date(item.timestamp), 'h:mm a')
       : 'Unknown time';
-
     const isMediaMessage = item.mediaType === 'image' && item.media;
+    const isUnread = item.status === 'unread' && item.receiver._id === currentUser._id;
 
     return (
       <View
@@ -545,7 +542,9 @@ export default function ChatScreen({ route, navigation }) {
             styles.messageBubble,
             isSender
               ? { backgroundColor: '#34A853' }
-              : { backgroundColor: '#494949' },
+              : isUnread
+              ? { backgroundColor: '#01520d' } // Unread messages in red
+              : { backgroundColor: '#494949' }, // Seen messages in default color
             { borderRadius: 10 },
           ]}
         >
@@ -582,10 +581,9 @@ export default function ChatScreen({ route, navigation }) {
   };
 
   return (
+    
     <View style={[styles.container, { backgroundColor: theme === 'light' ? '#FFFFFF' : '#000000' }]}>
       <Header />
-
-      {/* User Details Section with Online/Offline Status */}
       {receiver ? (
         <View style={[styles.userDetails, { backgroundColor: '#494949' }]}>
           {hasValidProfileImage ? (
@@ -614,7 +612,6 @@ export default function ChatScreen({ route, navigation }) {
         </View>
       )}
 
-      {/* Chat Area */}
       {loading && page === 1 ? (
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading chat...</Text>
@@ -629,6 +626,7 @@ export default function ChatScreen({ route, navigation }) {
           inverted
           onEndReached={loadMoreMessages}
           onEndReachedThreshold={0.1}
+          initialNumToRender={20}
           ListFooterComponent={
             loading && page > 1 ? (
               <View style={styles.loadingMoreContainer}>
@@ -639,7 +637,6 @@ export default function ChatScreen({ route, navigation }) {
         />
       )}
 
-      {/* Media Preview Area (if media is selected) */}
       {selectedMedia && (
         <View style={styles.mediaPreviewContainer}>
           <Image
@@ -660,7 +657,6 @@ export default function ChatScreen({ route, navigation }) {
         </View>
       )}
 
-      {/* Input Area */}
       <View style={[styles.inputContainer, { backgroundColor: '#494949' }]}>
         {isReceiverRecruiter && inviteStatus === 'pending' ? (
           <TouchableOpacity style={styles.inviteButton} onPress={handleSendInvite}>
@@ -681,7 +677,7 @@ export default function ChatScreen({ route, navigation }) {
                   handleTyping();
                 }}
                 onBlur={() => setIsTyping(false)}
-                editable={!isMediaUploading} // Disable input while uploading media
+                editable={!isMediaUploading}
               />
               <TouchableOpacity style={styles.stickerIcon}>
                 <Image
@@ -693,7 +689,7 @@ export default function ChatScreen({ route, navigation }) {
             <TouchableOpacity
               style={[styles.sendButton, isMediaUploading && styles.sendButtonDisabled]}
               onPress={handleSendMessage}
-              disabled={isMediaUploading} // Disable send button while uploading
+              disabled={isMediaUploading}
             >
               <Icon name="send" size={20} color="#FFFFFF" />
             </TouchableOpacity>
@@ -709,7 +705,7 @@ export default function ChatScreen({ route, navigation }) {
                   ]
                 );
               }}
-              disabled={isMediaUploading} // Disable media selection while uploading
+              disabled={isMediaUploading}
             >
               <Icon name="add-circle" size={30} color={isMediaUploading ? '#888888' : '#FFFFFF'} />
             </TouchableOpacity>
@@ -722,11 +718,12 @@ export default function ChatScreen({ route, navigation }) {
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
+
     </View>
+
   );
 }
 
-// Responsive Styles
 const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
@@ -774,7 +771,7 @@ const styles = StyleSheet.create({
   inputWrapper: { flex: 1, position: 'relative' },
   input: { flex: 1, padding: 10, borderRadius: 10, backgroundColor: '#FFFFFF', color: '#000000', paddingRight: 30, marginRight: 5 },
   sendButton: { backgroundColor: '#34C759', borderRadius: 25, width: 40, height: 40, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  sendButtonDisabled: { backgroundColor: '#888888' }, // Style for disabled send button
+  sendButtonDisabled: { backgroundColor: '#888888' },
   stickerIcon: { position: 'absolute', right: 10, top: '50%', transform: [{ translateY: -8 }], width: 16, height: 16, justifyContent: 'center', alignItems: 'center' },
   inviteButton: { flex: 1, backgroundColor: '#34A853', padding: 10, borderRadius: 10, alignItems: 'center' },
   inviteButtonText: { color: '#FFFFFF', fontWeight: 'bold' },

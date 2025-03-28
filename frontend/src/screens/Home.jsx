@@ -5,6 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useSelector } from "react-redux";
 import { getUserData } from "../storage/userData";
 import PostReviewTab from "../components/PostReviewTab";
+import Footer from "../components/Footer";
 
 
 const Home = () => {
@@ -18,6 +19,7 @@ console.log("home" ,getUserData())
   };
 
   return (
+    <>
     <View style={styles.container}>
       <Text style={{ fontSize: 40, marginBottom: 20 }}>Welcome to Home</Text>
       <Button title="Logout" onPress={handleLogout} />
@@ -25,10 +27,13 @@ console.log("home" ,getUserData())
       <Button title="ChatScreen" onPress={() => navigation.navigate("ChatScreen")} />
       <Button title="RandomUser" onPress={() => navigation.navigate("RandomUser")} />
       <Button title="AllChatsScreen" onPress={() => navigation.navigate("AllChatsScreen")} />
+      
   
      
       
     </View>
+    <Footer style={{ position: "absolute", bottom: 0}}/>
+    </>
   );
 };
 

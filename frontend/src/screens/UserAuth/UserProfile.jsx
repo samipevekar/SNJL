@@ -22,6 +22,7 @@ import MockUserProfile from "../../components/MockUserProfile";
 import { getUserData } from "../../storage/userData";
 import { fetchSavedPosts, fetchUserPosts } from "../../store/slices/postSlice";
 import PostReviewTab from "../../components/PostReviewTab";
+import Footer from "../../components/Footer";
 
 const { width, height } = Dimensions.get("window");
 
@@ -49,7 +50,7 @@ export default function UserProfile({ navigation }) {
   
 
 
-  const avatarUri = typeof userData.profileImage === "string" && userData.profileImage.startsWith("http")
+  const avatarUri = typeof userData?.profileImage === "string" && userData?.profileImage.startsWith("http")
       ? userData.profileImage
       : null;
 
@@ -161,6 +162,9 @@ export default function UserProfile({ navigation }) {
     dispatch(fetchSavedPosts());
   }, [dispatch]);
   return (
+
+
+    <>
     <View
       style={[
         styles.outerContainer,
@@ -453,6 +457,8 @@ export default function UserProfile({ navigation }) {
       </TouchableOpacity>
       
     </View>
+     <Footer style={{ position: "absolute", bottom: 0, zIndex: 1}}/>
+</>
   );
 }
 

@@ -16,6 +16,7 @@ import ratingRoutes from './routes/ratingRoute.js'
 // import {app, server } from './socket/socket.js';
 import randomDataRoutes from './routes/randomDataRoutes.js';
 import http  from 'http';
+import searchRoutes from './routes/searchRoutes.js';
 config();
 const app = express();
 const server = http.createServer(app);
@@ -52,6 +53,7 @@ app.use('/api/friends',friendRoutes)
 app.use('/api/ratings', ratingRoutes);
 app.use('/api/posts', postRoutes);
 app.use("/api/randomData",randomDataRoutes)
+app.use("/api/search", searchRoutes);
 
 
 
