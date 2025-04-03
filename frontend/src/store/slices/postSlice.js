@@ -8,9 +8,9 @@ export const fetchUserPosts = createAsyncThunk(
   "posts/fetchUserPosts",
   async (userId, { rejectWithValue }) => {
     try {
-      console.log("userid", userId);
+      // console.log("userid", userId);
       const token = await getToken();
-      console.log("token", token);
+      // console.log("token", token);
       const response = await axiosInstance.get(`/posts/${userId}`, {
         headers: {
           Authorization: `token ${token}`,

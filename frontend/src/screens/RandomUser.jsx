@@ -146,7 +146,8 @@ const RandomUserScreen = ({ navigation }) => {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </View>
+              
+            </View> 
             <View>
               
             </View>
