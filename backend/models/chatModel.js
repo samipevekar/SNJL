@@ -20,6 +20,20 @@ const chatSchema = new mongoose.Schema({
     message: {
         type: String,
     },
+    media: {
+    type: String, // URL of the uploaded media on Cloudinary
+    required: false,
+  },
+  mediaType: {
+    type: String, // Type of media (e.g., 'image', 'pdf', 'doc', 'video')
+    required: false,
+    enum: ['image', 'pdf', 'doc', 'video', 'audio', 'other'],
+  },
+  status: {
+    type: String,
+    enum: ['sent', 'delivered', 'seen'],
+    default: 'sent',
+  },
 },{timestamps:true});
 
 const Chat = mongoose.model("Chat", chatSchema);

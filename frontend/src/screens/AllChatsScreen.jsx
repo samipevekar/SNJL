@@ -14,6 +14,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { fetchAllChats, clearChat } from '../store/slices/chatSlice';
 import { getUserData } from '../storage/userData';
 import { formatDistanceToNow } from 'date-fns';
+import Footer from '../components/Footer';
 
 export default function AllChatsScreen({ navigation }) {
   const dispatch = useDispatch();
@@ -87,7 +88,10 @@ export default function AllChatsScreen({ navigation }) {
 
   // Render each chat item
   const renderChat = ({ item }) => {
-    const { user, latestMessage, latestTimestamp } = item;
+
+
+    // console.log("item",item)
+    const { user, latestMessage, latestTimestamp ,unreadCount } = item;
     const hasValidProfileImage = user?.profileImage && user?.profileImage.startsWith('https');
 
     return (
@@ -103,9 +107,18 @@ export default function AllChatsScreen({ navigation }) {
           )}
         </View>
         <View style={styles.chatDetails}>
-          <Text style={[styles.userName, { color: theme === 'light' ? '#000' : '#FFF' }]}>
+        <View style={{flexDirection:"row",alignItems:"center"}}> <Text style={[styles.userName, { color: theme === 'light' ? '#000' : '#FFF' }]}>
             {user?.name || 'Unknown User'}
           </Text>
+          <View>{unreadCount > 0 && ( // Display unread count if exists
+            <View style={styles.unreadBadge}>
+            <Text style={styles.unreadCount}>
+                  {unreadCount > 99 ? `${unreadCount}+` : unreadCount}
+                </Text>
+            </View>
+          )}</View></View>
+          
+          
           <Text
             style={[styles.latestMessage, { color: theme === 'light' ? '#555' : '#AAA' }]}
             numberOfLines={1}
@@ -114,14 +127,18 @@ export default function AllChatsScreen({ navigation }) {
             {latestMessage || 'No messages yet'}
           </Text>
         </View>
+       
         <Text style={[styles.timestamp, { color: theme === 'light' ? '#888' : '#AAA' }]}>
           {formatTimestamp(latestTimestamp)}
         </Text>
+        
       </TouchableOpacity>
     );
   };
 
   return (
+
+    <>
     <View style={[styles.container, { backgroundColor: theme === 'light' ? '#FFF' : '#000' }]}>
       <Header />
       <Text style={[styles.title, { color: theme === 'light' ? '#000000' : '#FFFFFF' }]}>MESSENGER</Text>
@@ -153,9 +170,11 @@ export default function AllChatsScreen({ navigation }) {
 
       {/* Floating Action Button for New Chat */}
       <TouchableOpacity style={styles.fab} onPress={handleNewChat}>
-        <Icon name="add" size={30} color="#FFF" />
+        <Icon name="add" size={28} color="#FFF" />
       </TouchableOpacity>
     </View>
+    <Footer style={{ position: "absolute", bottom: 0, zIndex: 1}}/>
+    </>
   );
 }
 
@@ -242,9 +261,9 @@ const styles = StyleSheet.create({
     bottom: 20,
     right: 20,
     backgroundColor: '#34C759',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
@@ -253,4 +272,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
   },
+  unreadBadge:{
+    backgroundColor: "#34A853",
+    marginLeft: 5,
+    marginRight: 5,
+    padding: 5, // Adjust padding to control size
+    borderRadius: 999, // Large value to ensure circle
+    aspectRatio: 1, // Ensures square shape
+    alignItems: "center",
+    justifyContent: "center",
+
+    
+  },
+  unreadCount:{
+    fontSize:10
+  }
+
 });

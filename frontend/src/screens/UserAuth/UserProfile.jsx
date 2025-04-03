@@ -61,7 +61,7 @@ const toggleSearch = () => {
     }).start();
   };
 
-  const avatarUri = typeof userData.profileImage === "string" && userData.profileImage.startsWith("http")
+  const avatarUri = typeof userData?.profileImage === "string" && userData?.profileImage.startsWith("http")
       ? userData.profileImage
       : null;
 
@@ -173,6 +173,9 @@ const toggleSearch = () => {
     dispatch(fetchSavedPosts());
   }, [dispatch]);
   return (
+
+
+    <>
     <View
       style={[
         styles.outerContainer,
@@ -465,6 +468,8 @@ const toggleSearch = () => {
       </TouchableOpacity>
       <Footer toggleSearch={toggleSearch} />
     </View>
+     <Footer style={{ position: "absolute", bottom: 0, zIndex: 1}}/>
+</>
   );
 }
 

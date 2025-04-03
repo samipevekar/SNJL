@@ -14,6 +14,12 @@ import PostReviewTab from "../components/PostReviewTab";
 import RandomUser from "../screens/RandomUser";
 import AllChatsScreen from "../screens/AllChatsScreen";
 import ViewProfile from "../screens/ViewProfile";
+import SearchScreen from "../screens/SearchScreen";
+import Job from "../screens/UserAuth/Job";
+import AppliedJobs from "../screens/UserAuth/AppliedJobs";
+import JobDetails from "../screens/UserAuth/JobDetails";
+import AppliedJobDetails from "../screens/UserAuth/AppliedJobDetails";
+import ApplyJob from "../screens/UserAuth/ApplyJob";
 
 
 const Stack = createStackNavigator();
@@ -38,7 +44,12 @@ const StackNavigation = () => {
       <Stack.Screen name="RandomUser" component={RandomUser} />
       <Stack.Screen name="AllChatsScreen" component={AllChatsScreen} />
       <Stack.Screen name="ViewProfile" component={ViewProfile} />
-     
+      <Stack.Screen name='Search' component={SearchScreen} />
+      <Stack.Screen name='Job' component={Job} />
+      <Stack.Screen name='AppliedJobs' component={AppliedJobs} />
+      <Stack.Screen name='JobDetails' component={JobDetails} />
+      <Stack.Screen name='AppliedJobDetails' component={AppliedJobDetails} />
+      <Stack.Screen name='ApplyJob' component={ApplyJob} />
     </Stack.Navigator>
   );
 };
