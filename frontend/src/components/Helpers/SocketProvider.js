@@ -22,7 +22,7 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    socketRef.current = io('http://192.168.43.111:5000', {
+    socketRef.current = io('http://192.168.255.213:5000', {
       auth: { token },
       reconnection: true,
       reconnectionAttempts: Infinity,
