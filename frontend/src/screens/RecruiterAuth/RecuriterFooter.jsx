@@ -9,13 +9,12 @@ import LinearGradient from "react-native-linear-gradient"; // Install this packa
 const { width } = Dimensions.get("window");
 const scale = width / 375;
 
-export default function Footer() {
+export default function RecuriterFooter() {
   const theme = useSelector((state) => state.theme.mode);
   const navigation = useNavigation();
-  const route = useRoute();
+  const route = useRoute(); 
   const [userData, setUserData] = useState(null);
-  const [isOverlayVisible, setIsOverlayVisible] = useState(false); 
-  console.log("userData", userData);
+  const [isOverlayVisible, setIsOverlayVisible] = useState(false); // State for overlay visibility
 
   const avatarUri =
     typeof userData?.profileImage === "string" && userData?.profileImage.startsWith("http")
@@ -37,27 +36,15 @@ export default function Footer() {
   // Function to determine if the button is active
   const isActive = (screenName) => route.name === screenName;
 
-  // Determine the screen name for the role-based Job/Hire button
-  const roleBasedScreen = userData?.role === "Recruiter" ? "Hire" : "Job";
-
-  // Handle Add Post button click based on role
-  const handleAddPostClick = () => {
-    if (userData?.role === "Recruiter") {
-      setIsOverlayVisible(true); // Show overlay for recruiters
-    } else {
-      navigation.navigate("PostPage"); // Direct navigation for users
-    }
-  };
-
   // Handle navigation for Post Job and Post Page
   const handlePostJob = () => {
     setIsOverlayVisible(false);
-    navigation.navigate("PostJob");
+    navigation.navigate("PostJob"); // Replace with your PostJob screen name
   };
 
   const handlePostPage = () => {
     setIsOverlayVisible(false);
-    navigation.navigate("PostPage");
+    navigation.navigate("PostPage"); // Replace with your PostPage screen name
   };
 
   return (
@@ -89,10 +76,10 @@ export default function Footer() {
           <Text style={[styles.iconLabel, isActive("Search") && styles.activeText]}>Search</Text>
         </TouchableOpacity>
 
-        {/* Add Post Icon (Role-Based) */}
+        {/* Add Post Icon with Overlay */}
         <TouchableOpacity
           style={[styles.iconWrapper, { marginTop: 10 }, isActive("AddPost") && styles.activeButton]}
-          onPress={handleAddPostClick}
+          onPress={() => setIsOverlayVisible(true)}
         >
           <Icon
             name="add-circle"
@@ -102,19 +89,17 @@ export default function Footer() {
           <Text style={[styles.iconLabel, isActive("AddPost") && styles.activeText]}>Add Post</Text>
         </TouchableOpacity>
 
-        {/* Role-Based Button (Job for User, Hire for Recruiter) */}
+        {/* Hire Icon */}
         <TouchableOpacity
-          style={[styles.iconWrapper, { marginTop: 10 }, isActive(roleBasedScreen) && styles.activeButton]}
-          onPress={() => navigation.navigate(roleBasedScreen)}
+          style={[styles.iconWrapper, { marginTop: 10 }, isActive("Hire") && styles.activeButton]}
+          onPress={() => navigation.navigate("Hire")}
         >
           <Icon
             name="work"
             size={21 * scale}
-            color={isActive(roleBasedScreen) ? "#34C759" : theme === "light" ? "#FFFFFF" : "#000000"}
+            color={isActive("Hire") ? "#34C759" : theme === "light" ? "#FFFFFF" : "#000000"}
           />
-          <Text style={[styles.iconLabel, isActive(roleBasedScreen) && styles.activeText]}>
-            {userData?.role === "Recruiter" ? "Hire" : "Job"}
-          </Text>
+          <Text style={[styles.iconLabel, isActive("Hire") && styles.activeText]}>Hire</Text>
         </TouchableOpacity>
 
         {/* Profile Icon */}
@@ -125,77 +110,67 @@ export default function Footer() {
           {avatarUri ? (
             <Image
               source={{ uri: avatarUri }}
-              style={{
-                width: 21 * scale,
-                height: 21 * scale,
-                borderRadius: 10.5,
-                borderColor: "#34A853",
-                borderWidth: 1,
-              }}
+              style={[
+                { width: 21 * scale, height: 21 * scale, borderRadius: 10.5 },
+                isActive("UserProfile") && styles.activeImage,
+              ]}
             />
           ) : (
-            <Image
-              source={require("../../images/AvatarLight.png")}
-              style={{
-                width: 21 * scale,
-                height: 21 * scale,
-                borderRadius: 10.5,
-                borderColor: "#34A853",
-                borderWidth: 1,
-              }}
+            <Icon
+              name="person"
+              size={21 * scale}
+              color={isActive("UserProfile") ? "#34C759" : theme === "light" ? "#FFFFFF" : "#000000"}
             />
           )}
           <Text style={[styles.iconLabel, isActive("UserProfile") && styles.activeText]}>Profile</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Overlay Modal (for Recruiters only) */}
-      {userData?.role === "Recruiter" && (
-        <Modal
-          transparent={true}
-          visible={isOverlayVisible}
-          animationType="fade"
-          onRequestClose={() => setIsOverlayVisible(false)}
-        >
-          <Pressable style={styles.modalOverlay} onPress={() => setIsOverlayVisible(false)}>
-            <View style={styles.modalContent}>
-              {/* Close Button */}
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setIsOverlayVisible(false)}
+      {/* Overlay Modal */}
+      <Modal
+        transparent={true}
+        visible={isOverlayVisible}
+        animationType="fade"
+        onRequestClose={() => setIsOverlayVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setIsOverlayVisible(false)}>
+          <View style={styles.modalContent}>
+            {/* Close Button */}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setIsOverlayVisible(false)}
+            >
+              <Icon name="close" size={20 * scale} color="#666" />
+            </TouchableOpacity>
+
+            {/* Post Job Button */}
+            <TouchableOpacity onPress={handlePostJob}>
+              <LinearGradient
+                colors={["#34C759", "#28A745"]}
+                style={styles.actionButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
               >
-                <Icon name="close" size={20 * scale} color="#666" />
-              </TouchableOpacity>
+                <Icon name="work" size={18 * scale} color="#FFF" />
+                <Text style={styles.actionButtonText}>Post Job</Text>
+              </LinearGradient>
+            </TouchableOpacity>
 
-              {/* Post Job Button */}
-              <TouchableOpacity onPress={handlePostJob}>
-                <LinearGradient
-                  colors={["#34C759", "#28A745"]}
-                  style={styles.actionButton}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Icon name="work" size={18 * scale} color="#FFF" />
-                  <Text style={styles.actionButtonText}>Post Job</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {/* Post Page Button */}
-              <TouchableOpacity onPress={handlePostPage}>
-                <LinearGradient
-                  colors={["#007BFF", "#0056B3"]}
-                  style={styles.actionButton}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Icon name="description" size={18 * scale} color="#FFF" />
-                  <Text style={styles.actionButtonText}>Post Page</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Modal>
-      )}
+            {/* Post Page Button */}
+            <TouchableOpacity onPress={handlePostPage}>
+              <LinearGradient
+                colors={["#007BFF", "#0056B3"]}
+                style={styles.actionButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Icon name="description" size={18 * scale} color="#FFF" />
+                <Text style={styles.actionButtonText}>Post Page</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -229,13 +204,13 @@ const styles = StyleSheet.create({
   },
   activeButton: {},
   activeText: {
-    color: "#34C759",
+    color: "#34C759", 
   },
   activeImage: {
     borderWidth: 1,
-    borderColor: "#34C759",
+    borderColor: "#34C759", 
   },
-  // Modal Styles (Copied from RecuriterFooter.jsx)
+  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",

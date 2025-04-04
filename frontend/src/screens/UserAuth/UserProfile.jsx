@@ -35,6 +35,7 @@ export default function UserProfile({ navigation }) {
   const [searchVisible, setSearchVisible] = useState(false);
   const inputAnim = useRef(new Animated.Value(0)).current;
 
+
   const theme = useSelector((state) => state.theme.mode);
   const [activeTab, setActiveTab] = useState("posts");
   const [isSticky, setIsSticky] = useState(false);
@@ -468,7 +469,7 @@ const toggleSearch = () => {
       </TouchableOpacity>
       <Footer toggleSearch={toggleSearch} />
     </View>
-     <Footer style={{ position: "absolute", bottom: 0, zIndex: 1}}/>
+    
 </>
   );
 }

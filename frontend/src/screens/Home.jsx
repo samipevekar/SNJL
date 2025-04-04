@@ -8,6 +8,7 @@ import { useNavigation } from "@react-navigation/native";
 import { getUserData } from "../storage/userData";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import RecuriterFooter from "./RecruiterAuth/RecuriterFooter";
 
 // import image1 from '../../images/image1.png';
 // import image2 from '../../images/image2.png';
@@ -392,6 +393,7 @@ const Home = () => {
         style={styles.list}
       />
       <Footer style={{ position: "absolute", bottom: 0 }} />
+      {/* <RecuriterFooter></RecuriterFooter> */}
       <Button title="Logout" onPress={handleLogout} />
     </View>
   );

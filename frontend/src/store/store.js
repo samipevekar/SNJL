@@ -8,6 +8,8 @@ import randomDataReducer from './slices/RandomDataSlice.js'
 import chatReducer from './slices/chatSlice.js'
 import onlineStatusReducer from './slices/onlineStatusSlice.js'
 import searchReducer from './slices/searchSlice.js'
+import jobReducer from './slices/jobSlice';
+
 export const store = configureStore({
   reducer: {
     userAuth: userAuthReducer,
@@ -18,7 +20,7 @@ export const store = configureStore({
     randomUsers: randomDataReducer,
     chat: chatReducer,
     onlineStatus: onlineStatusReducer,
-    search: searchReducer
-
+    search: searchReducer,
+    jobs: jobReducer,
   },
 });

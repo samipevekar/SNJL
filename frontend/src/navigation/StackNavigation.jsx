@@ -20,6 +20,10 @@ import AppliedJobs from "../screens/UserAuth/AppliedJobs";
 import JobDetails from "../screens/UserAuth/JobDetails";
 import AppliedJobDetails from "../screens/UserAuth/AppliedJobDetails";
 import ApplyJob from "../screens/UserAuth/ApplyJob";
+import Hire from "../screens/RecruiterAuth/Hire";
+import RecuriterFooter from "../screens/RecruiterAuth/RecuriterFooter";
+import PostJob from "../screens/RecruiterAuth/PostJob";
+import PostPage from "../screens/RecruiterAuth/PostPage";
 
 
 const Stack = createStackNavigator();
@@ -50,6 +54,11 @@ const StackNavigation = () => {
       <Stack.Screen name='JobDetails' component={JobDetails} />
       <Stack.Screen name='AppliedJobDetails' component={AppliedJobDetails} />
       <Stack.Screen name='ApplyJob' component={ApplyJob} />
+
+      <Stack.Screen name='Hire' component={Hire} />
+      <Stack.Screen name='RecuriterFooter' component={RecuriterFooter} />
+      <Stack.Screen name="PostJob" component={PostJob} />
+      <Stack.Screen name="PostPage" component={PostPage} />
     </Stack.Navigator>
   );
 };
